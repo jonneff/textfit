@@ -338,6 +338,8 @@ http://localhost:8001
 
 Alyssa had all her data in a MySQL database.  Question:  should I try to put my data into MySQL to get things up and running or not?  I think not, because that is a detour and not necessary.  Instead I should mod her code to pull in features and labels directly from JSON.  I think.  I’m not using MySQL in for scaled solution.  
 
+Copying a file from S3 to wherever:  http://docs.aws.amazon.com/cli/latest/reference/s3/cp.html
+
 Just downloaded smallest Reddit file.  Guess what?  It appears to be uncompressed JSON.  This simplifies things quite a bit, don’t you think?  :)
 
 So all files in Reddit dataset are less than 1 Terabyte, about 908 GB.  
@@ -393,6 +395,119 @@ Exception                                 Traceback (most recent call last)
      91         # In Windows, ensure the Java child processes do not linger after Python has exited.
 
 Exception: Java gateway process exited before sending the driver its port number
+
+So I’m trying to set up a Pyspark kernel for IPython, a la 
+
+http://thepowerofdata.io/configuring-jupyteripython-notebook-to-work-with-pyspark-1-4-0/
+
+That’s not working either:
+jonneff ~ $ ipython console --kernel pyspark
+/System/Library/Frameworks/Python.framework/Versions/2.7/Resources/Python.app/Contents/MacOS/Python: No module named IPython
+IPython Console 3.2.1
+
+ERROR: Kernel did not respond
+
+Shutting down kernel
+
+I tried updating ipython using conda:
+
+conda update ipython ipython-notebook ipython-qtconsole
+
+Now I get worse error message when I try to star the console with the pyspark kernel.  
+
+onneff ~ $ ipython console --kernel pyspark
+Traceback (most recent call last):
+  File "/Users/jonneff/anaconda/bin/ipython", line 6, in <module>
+    sys.exit(start_ipython())
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/IPython/__init__.py", line 118, in start_ipython
+    return launch_new_instance(argv=argv, **kwargs)
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 591, in launch_instance
+    app.initialize(argv)
+  File "<string>", line 2, in initialize
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 75, in catch_config_error
+    return method(app, *args, **kwargs)
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/IPython/terminal/ipapp.py", line 305, in initialize
+    super(TerminalIPythonApp, self).initialize(argv)
+  File "<string>", line 2, in initialize
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 75, in catch_config_error
+    return method(app, *args, **kwargs)
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/IPython/core/application.py", line 386, in initialize
+    self.parse_command_line(argv)
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/IPython/terminal/ipapp.py", line 300, in parse_command_line
+    return super(TerminalIPythonApp, self).parse_command_line(argv)
+  File "<string>", line 2, in parse_command_line
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 75, in catch_config_error
+    return method(app, *args, **kwargs)
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 487, in parse_command_line
+    return self.initialize_subcommand(subc, subargv)
+  File "<string>", line 2, in initialize_subcommand
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 75, in catch_config_error
+    return method(app, *args, **kwargs)
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 418, in initialize_subcommand
+    subapp = import_item(subapp)
+  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/ipython_genutils/importstring.py", line 31, in import_item
+    module = __import__(package, fromlist=[obj])
+ImportError: No module named jupyter_console.app
+jonneff ~ $
+
+2015.09.14
+
+FIXED IT.  There is a MUCH easier way to start IPython with Spark.  Enter this on the command line in the directory where you have the .ipynb files you want to execute:
+
+IPYTHON_OPTS="notebook" pyspark
+
+That's it!  :)
+
+Getting error message on test helper.  Have to download and install this package:
+
+https://pypi.python.org/pypi/test_helper/0.2
+
+To install test_helper go to Downloads and unzip, then run
+
+python ./setup.py install
+
+To convert a Spark DataFrame to a regular RDD, use the .rdd method:
+
+rdd = df.rdd
+
+Here's what Alyssa had as columns in her Pandas dataframe, and what APPEARS to correspond to in my Spark dataframe:
+    
+    Alyssa:             Me:             Checked?
+    commentAuthor       author          Y
+    commentCreated      created_utc
+    commentID           id              Y
+    commentLink         link_id
+    commentScore        score
+    postID  
+    subreddit           subreddit
+    postAuthor  
+    postBody            body
+    postCreated
+    NegRaw  
+    vNegRaw             downs
+    vPos                ups
+    Pos     
+    Neg     
+    vNeg    
+    posNegRatio     
+    posNegDiff  
+    commentBody2    
+    commentLengthSW
+
+Question for Alyssa:  how did you map from JSON to the MySQL table?  I think I found the answer.  In her Github repo, there is a directory for data collection with IPython notebooks for collecting Reddit posts and comments using praw, the Python Reddit API Wrapper.  There she defines the mapping form comment JSON to her MySQL table:
+
+for comment in flat_allComments:
+                c.append({'subreddit': comment.subreddit,
+                          'commentID': comment.id,
+                          'postID': submission.id,
+                          'commentParentID': comment.parent_id,
+                          'commentCreated': comment.created,
+                          'commentLink': comment.permalink,
+                          'commentAuthor': comment.author,
+                          'commentScore': comment.score,
+                          'commentBody': comment.body})
+
+Talked to Alyssa, who walked me through R code for data cleaning.  For comment time since post, she suggests using first comment time as a proxy for time post was made.  Or I could look at her data and compute average time from post to first comment.  Good idea.
 
 
 
