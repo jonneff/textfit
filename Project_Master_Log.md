@@ -478,10 +478,10 @@ Here's what Alyssa had as columns in her Pandas dataframe, and what APPEARS to c
     commentID           id              Y
     commentLink         link_id
     commentScore        score
-    postID  
-    subreddit           subreddit
+    postID              N/A
+    subreddit           subreddit       Y
     postAuthor  
-    postBody            body
+    postBody            body            Pretty sure
     postCreated
     NegRaw  
     vNegRaw             downs
@@ -508,6 +508,43 @@ for comment in flat_allComments:
                           'commentBody': comment.body})
 
 Talked to Alyssa, who walked me through R code for data cleaning.  For comment time since post, she suggests using first comment time as a proxy for time post was made.  Or I could look at her data and compute average time from post to first comment.  Good idea.
+
+Reddit obfuscates the actual upvotes and downvotes, although they provide a "score" that is the difference that is correct.  From the Reddit wiki:
+-------------
+How is a submission's score determined?
+
+A submission's score is simply the number of upvotes minus the number of downvotes. If five users like the submission and three users don't it will have a score of 2. Please note that the vote numbers are not "real" numbers, they have been "fuzzed" to prevent spam bots etc. So taking the above example, if five users upvoted the submission, and three users downvote it, the upvote/downvote numbers may say 23 upvotes and 21 downvotes, or 12 upvotes, and 10 downvotes. The points score is correct, but the vote totals are "fuzzed".
+-------------
+
+Reddit JSON data dictionary:  https://github.com/reddit/reddit/wiki/JSON
+
+In Spark logistic regression module, input HAS to be a Spark Dataframe.  Interesting.  Not sure if it takes categorical variables.  If it doesn't, I think I can use one-hot encoding a la Spark ML course, lab 4.  So I will have to do OHE for subreddits, of which there will be thousands.  
+
+VERY IMPORTANT PRINCIPLE:  FILTER OUT 94% OF DATA THAT IS NOT EXTREME UPVOTE OR DOWNVOTE FIRST.  That leaves you with a MUCH smaller data set to manage.  
+
+Here is the outline of the order of computation. 
+
+1.  For each post link_id, find minimum created_utc timestamp [can't trust data is ordered by time] and store in key-value pair (pair RDD) {link_id: min_created_utc},  (Plan B:  set up API to get timestamp for all posts in Reddit)
+2.  Filter to retain only records that are top or bottom 3% in comment score (upvotes-downvotes) of their subreddit.  Reduces dataset for all subsequent processing.
+3.  Filter out exclusions.  Further reduce dataset.
+4.  Calculate timeSince based on created_utc and min_created_utc.
+5.  Clean comment body, calculate commentLength
+6.  Run sentiment analysis, calculate posNegDiff.
+7.  Set up OHE for subreddit
+8.  May need to deal with sparse matrices from OHE. (Do later if necessary.)
+9.  Run linear regression.
+
+
+Convert Dataframe to plain RDD
+For each link_id, find smallest created_utc
+
+How to compute percentiles of large datasets in Spark?  One solution in Scala:
+
+https://eradiating.wordpress.com/2015/02/25/compute-percentile-with-spark/
+
+Fast approximate percentiles using t-digests:
+
+http://apache-spark-user-list.1001560.n3.nabble.com/Percentile-td19978.html
 
 
 
