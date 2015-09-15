@@ -546,7 +546,9 @@ Fast approximate percentiles using t-digests:
 
 http://apache-spark-user-list.1001560.n3.nabble.com/Percentile-td19978.html
 
+Have to install t digest for Python:
 
+pip install tdigest
 
 
 
