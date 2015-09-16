@@ -573,5 +573,12 @@ Having a lot of trouble getting IPython notebook running on Ubuntu.  Basic probl
 
 Should probably do comment body before exclusions because some exclusions are based on body.  I've reduced my dataset by 94% with extreme up/down vote so this shouldn't impact performance too much.  
 
+2015.09.16
+
+DEPENDENCY
+Downloaded and installed AFINN Python package for sentiment analysis.  
+https://github.com/fnielsen/afinn
+
+
 
 
