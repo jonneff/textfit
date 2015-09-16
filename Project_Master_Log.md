@@ -569,3 +569,9 @@ scp test_helper-0.2.tar.gz ubuntu@master:/home/ubuntu/
 
 Unzip and un-tar file in one step on Linux:  tar xvfz somefilename.tar.gz
 
+Having a lot of trouble getting IPython notebook running on Ubuntu.  Basic problem is missing ipython_notebook_config.py.  It doesn't show up in profile directory when you create profile.  
+
+Should probably do comment body before exclusions because some exclusions are based on body.  I've reduced my dataset by 94% with extreme up/down vote so this shouldn't impact performance too much.  
+
+
+
