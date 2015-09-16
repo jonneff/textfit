@@ -550,5 +550,22 @@ Have to install t digest for Python:
 
 pip install tdigest
 
+Problem with T-digest.  When I do map-reduce and try to have T-digest "eat itself" on the reduce, I get back an object that Spark does not recognize as a T-digest.  I get some other dtype.  Ronak says that sometimes when you do reduce you get a pipeline RDD (whatever that is) and you have to "unwrap" the value to get the object you want.  Ronak showed me an example below, at about lines 57 thorugh 60.
 
+https://github.com/ronaknnathani/gitgraph/blob/master/scripts/batch/2015_events.py
+
+Ronak says I should move code to cluster NOW.  
+
+Public DNSs for my cluster:
+
+jon-master : ec2-52-89-6-161.us-west-2.compute.amazonaws.com
+jon-worker1:  ec2-52-89-2-243.us-west-2.compute.amazonaws.com
+jon-worker2:  ec2-52-89-6-162.us-west-2.compute.amazonaws.com
+jon-worker3:  ec2-52-89-6-148.us-west-2.compute.amazonaws.com
+
+Transferring files when you have passwordless ssh set up using scp:
+
+scp test_helper-0.2.tar.gz ubuntu@master:/home/ubuntu/
+
+Unzip and un-tar file in one step on Linux:  tar xvfz somefilename.tar.gz
 
