@@ -579,6 +579,47 @@ DEPENDENCY
 Downloaded and installed AFINN Python package for sentiment analysis.  
 https://github.com/fnielsen/afinn
 
+I CAN read in files sequentially and find min time comment because min time comment is always in the first input file int which the post link_id occurs.  This is because data files are organized by month.  HOWEVER, Ronak says that reading and processing sequentially will be slower than reading everything in at once.  If you run out of memory (which I will), data just spills to disk.  Then during processing, even with the disk IO, Spark will be faster than Hadoop because it is still doing some processing in memory.  Ronak has read in 1 TB data and it worked ok.  
+
+I can also do subreddit probability distributions sequentially because I can always add T-digests.  Not sure if this is the right way to go.  
+
+2015.09.17
+
+To connect to IPython notebook running on remote AWS server use port forwarding:
+
+ssh -N -f -L localhost:7778:localhost:7777 ubuntu@$public-dns
+
+Change public-dns to your specific master node public dns and make sure ports are correct.
+
+Struggling with OHE and SparseVector representation in LabeledPoint for input to LogisticRegressionWithSGD.  I have to THINK BACKWARDS.
+
+I want to input into LRWSGD an RDD of LabeledPoints:
+
+(label, SparseVector)
+
+where SparseVector is created from a dense vector:
+
+(posNegDiff, commentLength, timeSince, 0,0,0,...1,0,0...0)
+
+Note there are two parts to this dense vector:  the non-categorical variables and one hot encoding of the categorical variable subreddit. 
+
+The dense vector is created from the simple raw features:
+
+(posNegDiff, commentLength, timeSince, subreddit)
+
+OK I am throwing out the OHE approach and going straight to hash features.  So here are the steps:
+
+* Calculate label from score
+* Create rawData:  Put each record into format (label, noncats, raw feature), i.e. 
+  (label, (commentLength, posNegDiff, timeSince), subreddit)
+* Split into training and test sets:  rawTrainData and rawTestData
+* Create hashTrainData = rawTrainData.map(parseHashPoint)
+
+I need to modify parseHashPoint to ignore the non-categorical features and NOT use parsePoint because I have only one categorical feature.  THis is a hack but it makes everything simpler.  If I have more than one non-categorical variable then I will need a parsePoint function.  
+
+
+
+
 
 
 
