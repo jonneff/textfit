@@ -617,6 +617,40 @@ OK I am throwing out the OHE approach and going straight to hash features.  So h
 
 I need to modify parseHashPoint to ignore the non-categorical features and NOT use parsePoint because I have only one categorical feature.  THis is a hack but it makes everything simpler.  If I have more than one non-categorical variable then I will need a parsePoint function.  
 
+THE BIG CHALLENGE SO FAR IS MIXING CATEGORICAL AND NON-CATEGORICAL VARIABLES IN A SINGLE LabeledPoint in a compact sparse representation.  Here is how to do it:
+
+cl = comment length
+pn = posNegDiff
+ts = timeSince
+sr = subreddit (i.e., categorical variable)
+
+I can create a SparseVector out of a list of (index,value) tuples.  My list will always look like
+
+[(0,cl), (1,pn), (2,ts), (srIndex,1)]
+
+where srIndex is the index of the 1 value for the subreddit category from OHE.  
+
+My OHE dict will look like this:
+
+{ (0,'politics'):  0,
+(0,'reddit.com'):  1,
+(0,'gadgets'):  2,
+(0,'gaming'):  0, 
+...
+}
+
+It will look like this because I have only one categorical feature so the first element of the key tuple is always 0.  
+
+I can't just pull the index out of the value in the dict because it will collide with my non-categorical variables.  So, I shift the value of the OHE dict by 3 for all elements.  Then I can put them together in the smae list as input to SparseVector.
+
+Something like 
+
+OHEdict3 = OHEdict + 3 
+
+for all values.  Then my srIndex is simply:
+
+srIndex = OHEdict3[(0,sr)]
+
 
 
 
