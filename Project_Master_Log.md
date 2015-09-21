@@ -37,8 +37,6 @@ Bayesian classifier of words (Next steps)
 What words are associated with comments that have a positive comment score vs. negative comment score
 
 
-AWS instances, IAM accounts:
-
 2015.09.09
 
  Good evening everyone,
@@ -308,32 +306,6 @@ Produce 1st set of briefing charts.
 Add new objective, return to step 1.  
 Local Spark install:  /Users/jonneff/spark-1.4.0-bin-hadoop2.6
 
-Too much trouble to get IPython notebook working with Spark.  Instead I will go back to local virtual machine from Spark class.
-
-Created special directory for virtual machine:
-
-/Users/jonneff/myvagrant
-
- 
-
-To start the virtual machine, go to the myvagrant directory and enter
-
-vagrant up
-
-You can see the VM running in Virtual Box.  To stop the virtual machine, enter
-
-vagrant halt
-
-You can also completely delete the virtual machine
-
-vagrant destroy
-
-After destroy, if you enter ‘vagrant up’ it creates a new virtual machine.
-
-Virtual machine gives you access to an Ipython notebook with interface to Spark.
-
-http://localhost:8001
-
 ——————————
 
 Alyssa had all her data in a MySQL database.  Question:  should I try to put my data into MySQL to get things up and running or not?  I think not, because that is a detour and not necessary.  Instead I should mod her code to pull in features and labels directly from JSON.  I think.  I’m not using MySQL in for scaled solution.  
@@ -344,119 +316,14 @@ Just downloaded smallest Reddit file.  Guess what?  It appears to be uncompresse
 
 So all files in Reddit dataset are less than 1 Terabyte, about 908 GB.  
 
-Having a devil of a time getting IPython notebook running with Spark on local machine.  Keep getting the following error message when I try to initialize a Spark context:
-
-Exception: Java gateway process exited before sending the driver its port number
-There are a number of other people having the same problem with various solutions offered, none of which worked for me.
-https://forums.databricks.com/questions/1662/spark-python-java-gateway-process-exited-before-se.html
-So I’m stuck.  Looks like this:
-INPUT
-import matplotlib.pyplot as plt
-import json
-import os
-import sys
- 
-# Path for spark source folder
-os.environ['SPARK_HOME'] = "/Users/jonneff/spark-1.4.0-bin-hadoop2.6"
- 
-# Append pyspark to Python Path
-sys.path.append("/Users/jonneff/spark-1.4.0-bin-hadoop2.6/python")
- 
-from pyspark import SparkContext
-from pyspark import SparkConf
-from pyspark.sql import SQLContext
-conf = SparkConf().setMaster("local").setAppName("Words Tweeted")
-sc = SparkContext(conf = conf)
-OUTPUT
-Exception                                 Traceback (most recent call last)
-<ipython-input-3-39906ef53d10> in <module>()
-----> 1 conf = SparkConf().setMaster("local").setAppName("Words Tweeted")
-      2 sc = SparkContext(conf = conf)
-
-/Users/jonneff/spark-1.4.0-bin-hadoop2.6/python/pyspark/conf.pyc in __init__(self, loadDefaults, _jvm, _jconf)
-    102         else:
-    103             from pyspark.context import SparkContext
---> 104             SparkContext._ensure_initialized()
-    105             _jvm = _jvm or SparkContext._jvm
-    106             self._jconf = _jvm.SparkConf(loadDefaults)
-
-/Users/jonneff/spark-1.4.0-bin-hadoop2.6/python/pyspark/context.pyc in _ensure_initialized(cls, instance, gateway)
-    227         with SparkContext._lock:
-    228             if not SparkContext._gateway:
---> 229                 SparkContext._gateway = gateway or launch_gateway()
-    230                 SparkContext._jvm = SparkContext._gateway.jvm
-    231 
-
-/Users/jonneff/spark-1.4.0-bin-hadoop2.6/python/pyspark/java_gateway.pyc in launch_gateway()
-     87                 callback_socket.close()
-     88         if gateway_port is None:
----> 89             raise Exception("Java gateway process exited before sending the driver its port number")
-     90 
-     91         # In Windows, ensure the Java child processes do not linger after Python has exited.
-
-Exception: Java gateway process exited before sending the driver its port number
-
-So I’m trying to set up a Pyspark kernel for IPython, a la 
-
-http://thepowerofdata.io/configuring-jupyteripython-notebook-to-work-with-pyspark-1-4-0/
-
-That’s not working either:
-jonneff ~ $ ipython console --kernel pyspark
-/System/Library/Frameworks/Python.framework/Versions/2.7/Resources/Python.app/Contents/MacOS/Python: No module named IPython
-IPython Console 3.2.1
-
-ERROR: Kernel did not respond
-
-Shutting down kernel
-
-I tried updating ipython using conda:
-
-conda update ipython ipython-notebook ipython-qtconsole
-
-Now I get worse error message when I try to star the console with the pyspark kernel.  
-
-onneff ~ $ ipython console --kernel pyspark
-Traceback (most recent call last):
-  File "/Users/jonneff/anaconda/bin/ipython", line 6, in <module>
-    sys.exit(start_ipython())
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/IPython/__init__.py", line 118, in start_ipython
-    return launch_new_instance(argv=argv, **kwargs)
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 591, in launch_instance
-    app.initialize(argv)
-  File "<string>", line 2, in initialize
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 75, in catch_config_error
-    return method(app, *args, **kwargs)
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/IPython/terminal/ipapp.py", line 305, in initialize
-    super(TerminalIPythonApp, self).initialize(argv)
-  File "<string>", line 2, in initialize
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 75, in catch_config_error
-    return method(app, *args, **kwargs)
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/IPython/core/application.py", line 386, in initialize
-    self.parse_command_line(argv)
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/IPython/terminal/ipapp.py", line 300, in parse_command_line
-    return super(TerminalIPythonApp, self).parse_command_line(argv)
-  File "<string>", line 2, in parse_command_line
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 75, in catch_config_error
-    return method(app, *args, **kwargs)
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 487, in parse_command_line
-    return self.initialize_subcommand(subc, subargv)
-  File "<string>", line 2, in initialize_subcommand
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 75, in catch_config_error
-    return method(app, *args, **kwargs)
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/traitlets/config/application.py", line 418, in initialize_subcommand
-    subapp = import_item(subapp)
-  File "/Users/jonneff/anaconda/lib/python2.7/site-packages/ipython_genutils/importstring.py", line 31, in import_item
-    module = __import__(package, fromlist=[obj])
-ImportError: No module named jupyter_console.app
-jonneff ~ $
 
 2015.09.14
 
-FIXED IT.  There is a MUCH easier way to start IPython with Spark.  Enter this on the command line in the directory where you have the .ipynb files you want to execute:
+How to start IPython with Spark.  Enter this on the command line in the directory where you have the .ipynb files you want to execute:
 
 IPYTHON_OPTS="notebook" pyspark
 
-That's it!  :)
+That's it!  :)  The other way (creating and editing ipython_notebook_config.py) took a long time and never worked for me.  I could never get it to create ipython_notebook_config.py.
 
 Getting error message on test helper.  Have to download and install this package:
 
@@ -569,8 +436,6 @@ scp test_helper-0.2.tar.gz ubuntu@master:/home/ubuntu/
 
 Unzip and un-tar file in one step on Linux:  tar xvfz somefilename.tar.gz
 
-Having a lot of trouble getting IPython notebook running on Ubuntu.  Basic problem is missing ipython_notebook_config.py.  It doesn't show up in profile directory when you create profile.  
-
 Should probably do comment body before exclusions because some exclusions are based on body.  I've reduced my dataset by 94% with extreme up/down vote so this shouldn't impact performance too much.  
 
 2015.09.16
@@ -579,17 +444,11 @@ DEPENDENCY
 Downloaded and installed AFINN Python package for sentiment analysis.  
 https://github.com/fnielsen/afinn
 
-I CAN read in files sequentially and find min time comment because min time comment is always in the first input file int which the post link_id occurs.  This is because data files are organized by month.  HOWEVER, Ronak says that reading and processing sequentially will be slower than reading everything in at once.  If you run out of memory (which I will), data just spills to disk.  Then during processing, even with the disk IO, Spark will be faster than Hadoop because it is still doing some processing in memory.  Ronak has read in 1 TB data and it worked ok.  
+I CAN read in files sequentially and find min time comment because min time comment is always in the first input file int which the post link_id occurs.  This is because data files are organized by month.  HOWEVER, Ronak says that reading and processing sequentially will be slower than reading everything in at once.  If you run out of memory (which I will), data just spills to disk.  Then during processing, even with the disk IO, Spark will be faster than Hadoop because it uses directed acyclic graph (DAG) to optimize computation.  Also it is still doing some processing in memory.  Ronak has read in 1 TB data and it worked ok.  
 
 I can also do subreddit probability distributions sequentially because I can always add T-digests.  Not sure if this is the right way to go.  
 
 2015.09.17
-
-To connect to IPython notebook running on remote AWS server use port forwarding:
-
-ssh -N -f -L localhost:7778:localhost:7777 ubuntu@$public-dns
-
-Change public-dns to your specific master node public dns and make sure ports are correct.
 
 Struggling with OHE and SparseVector representation in LabeledPoint for input to LogisticRegressionWithSGD.  I have to THINK BACKWARDS.
 
@@ -651,9 +510,38 @@ for all values.  Then my srIndex is simply:
 
 srIndex = OHEdict3[(0,sr)]
 
+2015.09.18  
 
+Stuff to clean up later:
+*  Split data into training, val and test BEFORE creating subreddit digest.  If I use probability distributions from entire dataset then I am cheating in filtering data.  Once I do this, my OHE dict should be ok because I calculate it from the subreddit digest.
+*  
 
+Need to port code to cluster and set up git client on master node.
 
+To connect to IPython notebook running on remote AWS server use port forwarding:
 
+ssh -N -f -L localhost:7778:localhost:7777 ubuntu@$public-dns
+
+Change public-dns to your specific master node public dns and make sure ports are correct.  More detail:
+
+ssh -L localport:host:hostport user@ssh_server -N 
+
+where: 
+-L - port forwarding parameters (see below) 
+localport - local port (chose a port that is not in use by other service) 
+host - server that has the port (hostport) that you want to forward 
+hostport - remote port 
+-N - do not execute a remote command, (you will not have the shell, see below) 
+user - user that have ssh access to the ssh server (computer) 
+ssh_server - the ssh server that will be used for forwarding/tunneling 
+
+Without the -N option you will have not only the forwardig port but also the remote
+ shell. Try with and without it to see the difference.
+
+Need to specify PEM key file in port forwarding or it won't work.  Use this:
+
+ssh -i ~/.ssh/insight-jon.pem -N -f -L localhost:7778:localhost:8888 ubuntu@ec2-52-89-6-161.us-west-2.compute.amazonaws.com
+
+LATER, FOR TUNING SPARK PERFORMANCE:  Brian Cruz (alum) says number of partitions in Spark:  2 per core is a good number.
 
 
