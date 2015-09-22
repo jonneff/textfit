@@ -2,7 +2,6 @@ Project Master Log
 
 TextFit (http://textfit.me)
 
-
 Description
 TextFit is an app that provides users with feedback on a comment that they want to submit before they submit it, specifically how well their comment “fits” into the community they are submitting to.
 Target use case is for people who may have a tendency to flame/rage/say negative things on the internet or for people who don’t know how other people will react to their comment. (E.g., Sometimes emotions run high when playing a video game, and people say something that they don’t mean out of anger. My app would provide a “check” that helps people pause and reconsider whether that’s something they would want to say.)
@@ -543,5 +542,53 @@ Need to specify PEM key file in port forwarding or it won't work.  Use this:
 ssh -i ~/.ssh/insight-jon.pem -N -f -L localhost:7778:localhost:8888 ubuntu@ec2-52-89-6-161.us-west-2.compute.amazonaws.com
 
 LATER, FOR TUNING SPARK PERFORMANCE:  Brian Cruz (alum) says number of partitions in Spark:  2 per core is a good number.
+
+2015.09.20
+
+Using tmux
+
+Need to install tmux on remote server.  After installing, enter following on remote server:
+
+tmux new -s <session name>
+
+then start your process.  Now you can log out, close window, get timed out and process will keep going.  
+
+To list available sessions, enter following on remote host:
+
+tmux ls
+
+To attach to an existing session:
+
+tmux a -t <target session>
+
+Starting IPython notebook with Spark to use workers by default:
+
+IPYTHON_OPTS="notebook" pyspark --master spark://ip-172-31-47-195:7077 --executor-memory 6400M --driver-memory 6400M
+
+Patrick Zheng discovered that IPython-Spark uses just the master node to execute workbook by default.  Adding these parameters enables you to execute IPython notebook with workers.  
+
+Git problems:
+
+Do "git pull" before making changes on either the local laptop OR the server.  That way you are always up to date.
+
+To access S3 from Spark IPython notebook, need to edit .profile under home directory and add the following:
+
+export AWS_ACCESS_KEY_ID=<your access>
+export AWS_SECRET_ACCESS_KEY=<your secret>
+
+I set these env variables and restarted IPython server.  No joy.  Do I have to restart Spark?  Trying that next. 
+
+Have to install afinn, tdigest etc. on worker nodes or you get this error:
+
+ImportError: No module named tdigest.tdigest
+
+It takes ~20 minutes to create subredditDigest on an 85 MB input file EVEN ON THE CLUSTER.  Not good.  But how much of this is Spark overhead?
+
+
+
+
+
+
+
 
 
