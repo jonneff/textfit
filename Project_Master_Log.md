@@ -576,13 +576,101 @@ To access S3 from Spark IPython notebook, need to edit .profile under home direc
 export AWS_ACCESS_KEY_ID=<your access>
 export AWS_SECRET_ACCESS_KEY=<your secret>
 
-I set these env variables and restarted IPython server.  No joy.  Do I have to restart Spark?  Trying that next. 
+I set these env variables and restarted IPython server.  No joy.  Do I have to restart Spark?  Trying that next. Austin got it to work.  Here's what he said:
+
+"Magic! no, basically you had the key's in your ~/.profile, but you never sourced them in your IPython notebook server terminal. I just stopped the IPython notebook server, sourced the ~/.profile and voila!"
+
+"Process locality:  The values of environment variables are local, which means they are specific to the running process in or for which they were set. This means that if we open two terminal windows (which means we have two separate bash processes running), and change a value of an environment variable in one of the windows, that change will not be seen by the shell in the other window or any other program currently on the desktop." https://help.ubuntu.com/community/EnvironmentVariables
 
 Have to install afinn, tdigest etc. on worker nodes or you get this error:
 
 ImportError: No module named tdigest.tdigest
 
 It takes ~20 minutes to create subredditDigest on an 85 MB input file EVEN ON THE CLUSTER.  Not good.  But how much of this is Spark overhead?
+
+2015.09.22
+
+Implementing accuracy checking.  My performance is HORRIBLE.  Baseline is just giving predictions according to average percentage on training set, which is close to 50%.  
+OHE Features Train Logloss:
+  Baseline = 0.693
+  LogReg = 9.839
+
+Here are my weights and intercept:
+
+[-0.10322076674490815, -0.038175769180245248, -0.033515425808193736, -0.031231564685160879, -0.027168234465817155, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.010858031673728294, 0.043883835637280835, 0.052609844995172315, 0.74844587378001814, 0.76979891768686493, 1.8964562127415054, 6.4059693462854845, 13.564270390032908, 822.29158792336955, 6050.4316845170852] 10.6945827861
+
+Some of these weights are enormous.  I am tempted to jack up the regularization parameter because that would decrease size of weights.  But that's not my problem.  If anything the big weights should be overfitting.  Unfortunately I did just a really lousy job of fitting the data.  OR NOT.  I think maybe I need to alter code that calculates the probability of an observation, i.e., getP().
+
+A log loss of ~25.3 for a specific point means that we completely got it wrong.  If label was 1, we predicted 0 or vice versa.  0.99 and 0 would give a log loss of ~4.6.  My mean log loss over all data points is 9.8, indicating my model is wrong almost all of the time.  In fact, this is suspcious.  It seems to indicate that the model would be accurate if I REVERSED the prediction.  Odd.  
+
+So I printed training predictions and it appears that my model is predicting 0.999999999999999 for every point.  *sigh*  I am using linear regression with stochastic gradient descent.  
+
+Talked to Ronak.  I'm going to throw out log loss evaluation because it's not a good fit for my problem. Log loss is useful for rare events, like clickthrough on ads.  Voting something up or down is not rare.  Instead I will work with ROC plots, AUC, % of labels that were correct, etc.  
+
+Have to set environment variables for matplotlib because what I have is not working correctly.  
+
+BASICALLY ALL MY PREDICTIONS ARE THE SAME NUMBER:  0.9999999979388463.  If I run LRWSGD with mostly default inputs I get the same thing.
+
+Interesting note about my data:
+
+for key in srDigestR.keys():
+    print key, df.filter(df['subreddit'] == key).count()
+
+eo 1
+arxiv 4
+zh 3
+features 19
+programming 16162
+it 31
+sv 1
+gadgets 314
+nsfw 287
+politics 34088
+id 20
+es 1
+ru 17
+netsec 43
+ads 50
+entertainment 819
+tr 41
+sports 300
+freeculture 5
+gaming 572
+fr 5
+business 526
+reddit.com 88601
+de 15
+lipstick.com 1
+ja 33
+science 8326
+joel 24
+no 1
+request 11
+bugs 104
+sl 4
+
+And this is BEFORE I filter down to 6% of data set.  Maybe the lack of data for most of the subreddits is throwing log reg model off.Maybe I don't have enough data for stochastic gradient descent.
+
+Patrick Zheng and Ryan Walker suggest changing my input data so that I have only four categories:
+Programming
+Politics
+Reddit.com
+Other
+
+Since I have only a few categories for my categorical variable, I need to "leave out" one of them from encoding to avoid numerical instability.  So the encoding will be
+
+programming [1 0 0]
+politics [0 1 0]
+reddit.com [0 0 1]
+Other [0 0 0]
+
+In the long run I need to automatically filter out subreddits that just don't have enough data.  What's the right threshold?  I won't know until I read in all the data.....
+
+The result of reducing number of categories was:  I get same result, predicted values all = 1.  Played with hyperparameters and get same result.  Ronak suggests reading in data roughly corresponding to Alyssa's input data from S3 and seeing what result I get.  To do this, I need to read several input files from S3, filter out to just the subreddits she used, and run logistic regression on them.  
+
+I also need to beef up my cluster ot handle 1 TB of data.  Ronak suggests 6 nodes, each with 1 TB of disk.  Turn off Hadoop since I'm not using it.  
+
+
 
 
 
