@@ -670,6 +670,58 @@ The result of reducing number of categories was:  I get same result, predicted v
 
 I also need to beef up my cluster ot handle 1 TB of data.  Ronak suggests 6 nodes, each with 1 TB of disk.  Turn off Hadoop since I'm not using it.  
 
+2015.09.23
+
+Spark Master web page port 8080:  it is telling me some of my m4.large instances have six cores.  They only have 2.  Ronak thinks this is a bug in Spark.  
+
+Raw data files appear to have 1 JSON object per line.  Good.  At least that's what the first 85 MB file has.
+
+Time for a single 10 GB input file:
+* read in data file:  7 min
+* create subreddit digest:  28 min
+* filter down to top/bottom 3% and split into train, val and test:  
+
+OK so I have been recording times in an Excel spreadsheet.  So far so good.  I removed some .take() and .count() to improve performance.  I think there is something I am not cacheing because it looks like it is having to go back and re-calculate some things.  
+
+GOOD NEWS:  with 10 GB file, I am no longer getting all 1's.  BAD NEWS:  I only have 47% prediction accuracy.  Why?  Perhaps it is because I am creating specific OHE variables for politics, reddit.com, and programming and every other point is "other".  Not very accurate probably with all other subreddits going this way.
+
+IDEA:  At beginning, filter my data to only Alyssa's subreddits:  
+
+leagueoflegends
+GirlGamers
+pics
+politics
+
+FURTHERMORE, use as input data roughly the time frame she collected from, or nearby.  That should give me comparable results. 
+
+You can use the  .cancelAllJobs() method in Spark Context to cancel things that are running too long.
+
+LOTS of performance issues.  Two bottlenecks are reading data and creating subreddit digest.  GAME PLAN:
+
+1.  Tell Spark about new disk space so it is availble.  Create the following directories and add the following to spark-env.sh:
+
+export SPARK_LOCAL_DIRS=/mnt/my-data/spark_local_dir
+export SPARK_WORKER_DIR=/mnt/my-data/spark_worker_dir
+
+2.  Replace .cache() with .persist(StorageLevel.MEMORY_AND_DISK_SER)
+If there is not enough room in memory, sometimes Spark has to go back and read from S3 to recreate data.  According to Austin.
+
+3.  Refactor subreddit digest code to use .mapPartition()  Austin agrees should run faster bc it has some paralellism.
+
+4.  Specify schema on json read.  The way I'm doing it now, Spark reads entire file TWICE:  once to make SURE it has the right schema, then it actually reads in the data.  See Austin's code.
+
+5.  Run tests on subset of data for read and create subreddit schema.  See what the performance increase is.  
+
+If that's not enough, take some EXTREME MEASURES:
+*  Add three more nodes
+*  Run Spark on PyPy:  PYSPARK_PYTHON=pypy ./bin/spark-submit wordcount.py
+
+
+
+
+
+
+
 
 
 

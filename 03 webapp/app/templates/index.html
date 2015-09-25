@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+   <meta charset="utf-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <meta name="description" content="">
+   <meta name="author" content="">
+   <link rel="icon" href="../static/images/pen.ico">
+
+   <title>TextFit</title>
+
+   <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+   <link href="../static/css/bootstrap.min.css" rel="stylesheet">
+
+   <!-- Custom styles for this template -->
+   <link href="starter-template.css" rel="stylesheet">
+
+   <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+   <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+   <script src="../../assets/js/ie-emulation-modes-warning.js"></script>
+
+   <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+   <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
+   
+   <!-- jQuery UI tabs -->
+     <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+     <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+     <!--  <link rel="stylesheet" href="/resources/demos/style.css"> -->
+    <!--<script>
+         $(function() {
+             $( "#tabs" ).tabs();
+         });
+     </script>-->
+
+   <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+   <!--[if lt IE 9]>
+     <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+     <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+   <![endif]-->
+     
+     <style>
+         tr td:nth-child(1) {
+             width: 20%;
+         }
+         tr td:nth-child(2) {
+             width: 65%;
+         }
+         tr td:nth-child(3) {
+             width: 15%;
+         }
+         .formfield * {
+             vertical-align: middle;
+         }
+         .exPost {
+
+             text-decoration: underline;
+         }
+         p {
+             font-size: 115%;
+         }
+         .exPostStyle {             
+             font-size: 95%;
+         }
+     </style>
+ </head>
+
+ <body>
+
+   <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+     <div class="container">
+       <div class="navbar-header">
+         <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+           <span class="sr-only">Toggle navigation</span>
+           <span class="icon-bar"></span>
+           <span class="icon-bar"></span>
+           <span class="icon-bar"></span>
+         </button>
+         <a class="navbar-brand" href="index">textfit</a>
+       </div>
+       <div class="collapse navbar-collapse">
+         <ul class="nav navbar-nav">
+           <li class="active"><a href="index">Home</a></li>
+             <li><a href="about" target="_blank">About</a></li>
+           <!--<li><a href="#contact">Contact</a></li>-->
+         </ul>
+       </div><!--/.nav-collapse -->
+     </div>
+   </div>
+
+<br><br><br>
+
+<div class="container">
+
+    <div class="starter-template">
+        <h1>textfit</h1>
+        <h3>How will your comment fit in the community?</h3>
+        <p>This app supports <a href="http://www.reddit.com/about/" target = "_blank">Reddit</a>, specifically <a href="http://www.reddit.com/r/pics/rising/" target = "_blank">/r/pics</a>, <a href="http://www.reddit.com/r/politics/rising/" target = "_blank">/r/politics</a>, <a href="http://www.reddit.com/r/leagueoflegends/rising/" target = "_blank">/r/leagueoflegends</a>, and <a href="http://www.reddit.com/r/GirlGamers/rising/" target = "_blank">/r/GirlGamers</a>.
+    </div>
+
+    <br>
+
+    <div class = "container">
+        
+        <form  action="/output2" method="GET">
+
+            <div class="form-group">
+
+                <h4>Which thread do you want to comment in?</h4>
+                    <p>(Or copy-paste the thread URL into the box below.)</p>
+                
+
+                <div id="tabs">
+                    <ul>
+                    <li><a href="#tabs-1"><span>/r/pics</span></a></li>
+                    <li><a href="#tabs-2"><span>/r/politics</span></a></li>
+                    <li><a href="#tabs-3"><span>/r/leagueoflegends</span></a></li>
+                    <li><a href="#tabs-4"><span>/r/GirlGamers</span></a></li>
+                  </ul>
+                  <div id="tabs-1">
+                      <p><img src="../static/images/logos/Pics icon.png"></p>
+                    <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{Pic["postURL"][0]}}>{{Pic["postTitle"][0]}}</a> (<a href = "{{Pic['postURL'][0]}}" target="_blank">go to thread</a>)</p>
+                    <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{Pic["postURL"][1]}}>{{Pic["postTitle"][1]}}</a> (<a href = "{{Pic['postURL'][1]}}" target="_blank">go to thread</a>)</p>
+                    <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{Pic["postURL"][2]}}>{{Pic["postTitle"][2]}}</a> (<a href = "{{Pic['postURL'][2]}}" target="_blank">go to thread</a>)</p>
+                    <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{Pic["postURL"][3]}}>{{Pic["postTitle"][3]}}</a> (<a href = "{{Pic['postURL'][3]}}" target="_blank">go to thread</a>)</p>
+                    <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{Pic["postURL"][4]}}>{{Pic["postTitle"][4]}}</a> (<a href = "{{Pic['postURL'][4]}}" target="_blank">go to thread</a>)</p>                      
+                  </div>
+                  <div id="tabs-2">
+                      <p><img src="../static/images/logos/Pol icon.png"></p>
+                      <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{Pol["postURL"][10]}}>{{Pol["postTitle"][10]}}</a> (<a href = "{{Pol['postURL'][10]}}" target="_blank">go to thread</a>)</p>
+                    <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{Pol["postURL"][11]}}>{{Pol["postTitle"][11]}}</a> (<a href = "{{Pol['postURL'][11]}}" target="_blank">go to thread</a>)</p>
+                    <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{Pol["postURL"][12]}}>{{Pol["postTitle"][12]}}</a> (<a href = "{{Pol['postURL'][12]}}" target="_blank">go to thread</a>)</p>
+                    <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{Pol["postURL"][13]}}>{{Pol["postTitle"][13]}}</a> (<a href = "{{Pol['postURL'][13]}}" target="_blank">go to thread</a>)</p>
+                    <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{Pol["postURL"][14]}}>{{Pol["postTitle"][14]}}</a> (<a href = "{{Pol['postURL'][14]}}" target="_blank">go to thread</a>)</p>                      
+                  </div>
+                  <div id="tabs-3">
+                      <p><img src="../static/images/logos/LoL icon.png"></p>
+                      <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{LoL["postURL"][20]}}>{{LoL["postTitle"][20]}}</a> (<a href = "{{LoL['postURL'][20]}}" target="_blank">go to thread</a>)</p>
+                     <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{LoL["postURL"][21]}}>{{LoL["postTitle"][21]}}</a> (<a href = "{{LoL['postURL'][21]}}" target="_blank">go to thread</a>)</p>
+                     <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{LoL["postURL"][22]}}>{{LoL["postTitle"][22]}}</a> (<a href = "{{LoL['postURL'][22]}}" target="_blank">go to thread</a>)</p>
+                     <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{LoL["postURL"][23]}}>{{LoL["postTitle"][23]}}</a> (<a href = "{{LoL['postURL'][23]}}" target="_blank">go to thread</a>)</p>
+                     <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{LoL["postURL"][24]}}>{{LoL["postTitle"][24]}}</a> (<a href = "{{LoL['postURL'][24]}}" target="_blank">go to thread</a>)</p>                      
+                      </div>
+                  <div id="tabs-4">
+                      <p><img src="../static/images/logos/GG icon.png"></p>
+                      <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{GG["postURL"][30]}}>{{GG["postTitle"][30]}}</a> (<a href = "{{GG['postURL'][30]}}" target="_blank">go to thread</a>)</p>
+                     <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{GG["postURL"][31]}}>{{GG["postTitle"][31]}}</a> (<a href = "{{GG['postURL'][31]}}" target="_blank">go to thread</a>)</p>
+                     <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{GG["postURL"][32]}}>{{GG["postTitle"][32]}}</a> (<a href = "{{GG['postURL'][32]}}" target="_blank">go to thread</a>)</p>
+                     <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{GG["postURL"][33]}}>{{GG["postTitle"][33]}}</a> (<a href = "{{GG['postURL'][33]}}" target="_blank">go to thread</a>)</p>
+                     <p class="exPostStyle"><a href="#" class="exPost" data-postURL={{GG["postURL"][34]}}>{{GG["postTitle"][34]}}</a> (<a href = "{{GG['postURL'][34]}}" target="_blank">go to thread</a>)</p>                     
+                      </div>
+                </div>
+
+                
+                <br/>
+
+                 <div class="form-group">
+                    <h4>Thread URL</h4>
+                    <textarea cols = 100 rows = 1 type="text" id="post" name='post' placeholder=""></textarea>
+                </div>
+
+            </div>
+ 
+            <br/>
+
+            <div class="form-group">
+              <h4>What is your comment?</h4>
+              <textarea cols = 100 rows = 3 type="text" id="comment" name='comment' placeholder=""></textarea>
+            </div>
+
+            <div>
+                <button type="submit" id='submitButton' class="btn btn-default">submit</button>
+                <p>
+            </div>
+
+        </form>
+
+        <form action = "/egOutput" method = "GET" id = "egPost1" name = "egPost1">
+            <input type = "hidden" name = "postURL" value = "http://www.reddit.com/r/pics/comments/3ayy4r/in_2013_i_was_given_permission_to_paint_utility/csh8b2n">
+        </form>
+        <form action = "/egOutput" method = "GET" id = "egPost2" name = "egPost2">
+            <input type = "hidden" name = "postURL" value = "http://www.reddit.com/r/politics/comments/3anns5/bernie_sanders_rally_in_denver_draws_one_of/csen9e7">
+        </form>
+        <form action = "/egOutput" method = "GET" id = "egPost3" name = "egPost3">
+            <input type = "hidden" name = "postURL" value = "http://www.reddit.com/r/leagueoflegends/comments/3ac9ug/isnt_it_weird_that_brutalizer_only_builds_into/csbnl9t">
+        </form>
+        <form action = "/egOutput" method = "GET" id = "egPost4" name = "egPost4">
+            <input type = "hidden" name = "postURL" value = "http://www.reddit.com/r/GirlGamers/comments/3a91n9/everyone_always_shows_their_cats_as_their_gaming/csaemtq">
+        </form>
+        
+        <div class="form-group">
+            <label for="ID">To see how TextFit would have evaluated a currently posted comment, click one of the links below.</label>
+            <br/>[<a href="#" onClick = "document.getElementById('egPost1').submit();">Comment 1 - /r/pics</a>] [<a href="#" onClick = "document.getElementById('egPost2').submit();">Comment 2 - /r/politics</a>] [<a href="#" onClick = "document.getElementById('egPost3').submit();">Comment 3 - /r/leagueoflegends</a>] [<a href="#" onClick = "document.getElementById('egPost4').submit();">Comment 4 - /r/GirlGamers</a>]
+         </div> 
+        
+        <br/><br/>
+
+        <!-- <form  action="/egOutput" method="GET">
+        <div class="form-group">
+            <strong>Or copy-paste a comment's permalink in the box below:</strong>
+            <p><textarea cols = 100 rows = 2 type="text" id="postURL" name='postURL' placeholder=""></textarea>
+    </div>
+    <div>
+          <button type="submit" id='submitButton2' class="btn btn-default">submit</button>
+        <p>
+        </div>-->
+    
+        
+    <!--<script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>-->
+    <!--<script src="static/js/bootstrap.min.js"></script>-->
+
+  </div> <!-- /.container-->
+
+   <!-- Bootstrap core JavaScript
+   ================================================== -->
+   <!-- Placed at the end of the document so the pages load faster -->
+    <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>-->
+   <!--<script src="static/js/bootstrap.min.js"></script>-->
+
+     <script type='text/javascript'>
+         $(function() {
+             $( "#tabs" ).tabs();
+         });
+        $(document).ready(function() {
+            $('.exPost').click(function(e) {
+                var currentURL = $(e.currentTarget).attr('data-postURL')
+                $('#post').val(currentURL);
+            });
+            $('#submitButton').click(function(e) {                
+                if($('#comment').val() == '' || $('#post').val() == '') { 
+                    alert("Please submit a comment or post!");
+                    e.preventDefault();
+                    return;
+                }
+                
+                var str = $('#post').val();
+                var n = str.search(/(https:|http:)\/\/www\.reddit\.com\/r\/(pics|politics|leagueoflegends|GirlGamers)/);
+
+                if(n == -1) { 
+                    alert("Please submit a thread URL from one of the supported subreddits!");
+                    e.preventDefault();
+                    return;
+                }
+            });
+            $('#submitButton2').click(function(e) {
+                if($('#postURL').val() == '') { 
+                    alert("Please submit a comment permalink!");
+                    e.preventDefault();
+                    return;
+                }
+                var str = $('#postURL').val();
+                var n = str.search(/http:\/\/www\.reddit\.com\/r\/(pics|politics|leagueoflegends|GirlGamers)/);
+
+                if(n == -1) { 
+                    alert("Please submit a comment permalink from one of the supported subreddits!");
+                    e.preventDefault();
+                    return;
+                }
+            });
+        });
+    </script>
+
+ </body>
+</html>
