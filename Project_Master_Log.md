@@ -716,6 +716,33 @@ If that's not enough, take some EXTREME MEASURES:
 *  Add three more nodes
 *  Run Spark on PyPy:  PYSPARK_PYTHON=pypy ./bin/spark-submit wordcount.py
 
+2015.09.25
+
+So it's  not working. When I try to read the entire dataset, it gets stuck on treeReduce() no tasks are completing and event timeline shows "scheduler delay" for everything.
+
+So after some commenting out and debugging .take(), I narrowed it down to mapPartitions()
+
+llDigest = (srScoreRDD.filter(lambda (k,v): k == 'leagueoflegends')
+                       .map(lambda (k,v): v)
+                       .mapPartitions(digest_batch)
+                       # .treeReduce(add)
+             ).take(5) #.collectAsMap()
+
+When I execute this it hangs on mapPartitions()
+
+DETOUR:  web app.  Alyssa's web app actually runs the entire analysis and presents results.  What I want is much simpler.  I just want to execute my model on sample text input and predict up/down.  Need to do some development on webapp.  
+
+
+What I did today
+
+Added test to see if subreddit is in input data
+Refactored creation of subreddit digest to fix bugs and improve speed
+
+It was hanging on mapPartitions because there was nothing there for leagueoflegends.  That's why I added the test to see if subreddit is in input data.  
+
+Ran on 2007 data (0.5 GB) and got 57% accuracy on training set.  Not bad.  
+
+When I ran on 2008 data (4 GB) I kept getting a situation where everything executed quickly then there were tasks that failed and Spark kept trying to go back and execute them.  They always failed on node 1, IP ...245, which is worker5.  Austin suggests stopping IPython notebook server, then Spark, then rebooting all nodes.  If that doesn't fix it, just get rid of worker5 and add a few more nodes.  It smells like a hardware problem, possibly network card.  
 
 
 
