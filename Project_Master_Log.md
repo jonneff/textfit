@@ -519,7 +519,7 @@ Need to port code to cluster and set up git client on master node.
 
 To connect to IPython notebook running on remote AWS server use port forwarding:
 
-ssh -N -f -L localhost:7778:localhost:7777 ubuntu@$public-dns
+ssh -i ~/.ssh/insight-jon.pem -N -f -L localhost:7778:localhost:8888 ubuntu@master
 
 Change public-dns to your specific master node public dns and make sure ports are correct.  More detail:
 
@@ -703,6 +703,11 @@ LOTS of performance issues.  Two bottlenecks are reading data and creating subre
 export SPARK_LOCAL_DIRS=/mnt/my-data/spark_local_dir
 export SPARK_WORKER_DIR=/mnt/my-data/spark_worker_dir
 
+then 
+
+sudo chown -R ubuntu ./my-data
+sudo chgrp -R ubuntu ./my-data
+
 2.  Replace .cache() with .persist(StorageLevel.MEMORY_AND_DISK_SER)
 If there is not enough room in memory, sometimes Spark has to go back and read from S3 to recreate data.  According to Austin.
 
@@ -744,10 +749,157 @@ Ran on 2007 data (0.5 GB) and got 57% accuracy on training set.  Not bad.
 
 When I ran on 2008 data (4 GB) I kept getting a situation where everything executed quickly then there were tasks that failed and Spark kept trying to go back and execute them.  They always failed on node 1, IP ...245, which is worker5.  Austin suggests stopping IPython notebook server, then Spark, then rebooting all nodes.  If that doesn't fix it, just get rid of worker5 and add a few more nodes.  It smells like a hardware problem, possibly network card.  
 
+2015.09.26
+
+Terminated bad node, spun up 4 fresh nodes for a total of 8 workers.  Working much better now. 
+
+Reduce tasks for creating T-digests go really fast at first because they are small.  The first 62 tasks go fast.  The last 4 tasks are slow- big reduce jobs.  
+
+Uh oh.  In timeline I am seeing LOOONG scheduler delays.  
+http://apache-spark-user-list.1001560.n3.nabble.com/Task-s-quot-Scheduler-Delay-quot-in-web-ui-td9019.html:
+
+"Scheduling Delay" is the time required to assign a task to an available resource.
+
+if you're seeing large scheduler delays, this likely means that other jobs/tasks are using up all of the resources.
+
+here's some more info on how to setup Fair Scheduling versus the default FIFO Scheduler:  https://spark.apache.org/docs/latest/job-scheduling.html
+
+of course, increasing the cluster size would help assuming resources are being allocated fairly.
+
+also, delays can vary depending on the cluster resource manager that you're using (spark standalone, yarn, mesos).
+
+-chris
+
+---------
+So what other job/task is using up all of the resources?  Maybe persisting the srScoreRDD?  I hope it's not persisting rRDD that is slowing things down.  I need to persist that RDD for further processing.  
+
+So how to set scheduling mode to FAIR from default FIFO?  I can edit /usr/local/spark/conf/spark-defaults.conf to include default configuration.  Would need to copy this file from supplied template and add the following line:
+
+spark.scheduler.mode FAIR
+
+I  must admit this feels like a deadlock.  Two tasks are locked waiting for the other to release needed resources.  Task 0 and task 1 are just sitting there.
+
+Before changing scheduling mode, do some minor surgery on the IPython notebook. Try removing .persist() when creating srScoreRDD to see if this corrects possible deadlock when executing createDigestDictionary.
+
+I am getting sick of trying to fix createDigestDictionary.  My head is about to explode.  What if I abandon T-digest altogether and calculate percentiles some other way?  
+
+http://stackoverflow.com/questions/28805602/how-to-compute-percentiles-in-apache-spark
+http://stackoverflow.com/questions/28334669/proper-input-for-reduce-in-pyspark
+
+It may be possible to get percentile using a HIVE-like user defined function (UDAF or UDF) in Spark SQL.  
+
+I've also been playing with boto to see if I can find a way to better parallelize my read and process operations.  FOR INSTANCE, I should be able to 
+* read JSON file on S3
+* calculate T-digest for subreddits of interest in that file
+* use map-reduce to combine T-digests from different files
+
+Rather than try to read multiple files at once, I read one file at a time and calculate T-digests for that file (parallelized).  I should be able to do the same thing with extracting records with subreddits of interest.  
+
+2011/RC_2011-03 is a SINGLE FILE of size 4.1 GB.  What if I try to read that by itself?  Same result.  completes most of t-digest work in a minute or two and then there are 5 tasks that hang on scheduler delays.  *SIGH*  Reading files one at a time won't help me. 
+
+Trying .treeReduce() instead of .reduce() in calculating T-digests.  It appears to be running .treeReduce() twice, I'm not sure why.  When the first pass completed, 2 tasks failed.  
+
+Looks like on the second run of .treeReduce() it's getting hung on scheduler delays AGAIN with five tasks sitting there.  *SIGH*
+
+The error message said 
+
+ImportError: No module named cython_trees
+
+I've never seen this error before.  I thought I installed cython EVERYWHERE.  Is this what could be causing part of my problem???
+
+org.apache.spark.api.python.PythonException: Traceback (most recent call last):
+  File "/usr/local/spark/python/lib/pyspark.zip/pyspark/worker.py", line 111, in main
+    process()
+  File "/usr/local/spark/python/lib/pyspark.zip/pyspark/worker.py", line 106, in process
+    serializer.dump_stream(func(split_index, iterator), outfile)
+  File "/usr/local/spark/python/pyspark/rdd.py", line 2330, in pipeline_func
+    return func(split, prev_func(split, iterator))
+  File "/usr/local/spark/python/pyspark/rdd.py", line 2330, in pipeline_func
+    return func(split, prev_func(split, iterator))
+  File "/usr/local/spark/python/pyspark/rdd.py", line 316, in func
+    return f(iterator)
+  File "/usr/local/spark/python/pyspark/rdd.py", line 1767, in _mergeCombiners
+    merger.mergeCombiners(iterator)
+  File "/usr/local/spark/python/lib/pyspark.zip/pyspark/shuffle.py", line 300, in mergeCombiners
+    for k, v in iterator:
+  File "/usr/local/spark/python/lib/pyspark.zip/pyspark/serializers.py", line 139, in load_stream
+    yield self._read_with_length(stream)
+  File "/usr/local/spark/python/lib/pyspark.zip/pyspark/serializers.py", line 164, in _read_with_length
+    return self.loads(obj)
+  File "/usr/local/spark/python/lib/pyspark.zip/pyspark/serializers.py", line 421, in loads
+    return pickle.loads(obj)
+ImportError: No module named cython_trees
+
+  at org.apache.spark.api.python.PythonRDD$$anon$1.read(PythonRDD.scala:138)
+  at org.apache.spark.api.python.PythonRDD$$anon$1.<init>(PythonRDD.scala:179)
+  at org.apache.spark.api.python.PythonRDD.compute(PythonRDD.scala:97)
+  at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:277)
+  at org.apache.spark.rdd.RDD.iterator(RDD.scala:244)
+  at org.apache.spark.scheduler.ResultTask.runTask(ResultTask.scala:63)
+  at org.apache.spark.scheduler.Task.run(Task.scala:70)
+  at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:213)
+  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+  at java.lang.Thread.run(Thread.java:745)
 
 
+ALTERNATE APPROACH TO CALCULATING PERCENTILES:
 
+Can register DataFrames as temp table, then execute SQL against table, returning another DataFrame.   This plus HiveQL percentile estimate query should give me a useful result.
 
+http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame
+http://stackoverflow.com/questions/26863139/how-to-calculate-median-in-hive
+
+hive offers: percentile_approx(DOUBLE col, p [, B])
+
+So I ran this with percentile_approx and percentile on the politics subreddit for RC_2011-03, which is about 4.1 GB.  approx takes about 4.4 minutes while the exact calculation takes 5.3 minutes.  Clearly, I will go with approx.  
+
+I ran entire thing on 4.1 GB input file with exact percentile and it took 26 minutes for all 4 subreddits of interest.  With approx, it takes 28.9 minutes.  I DON'T BELIEVE THAT.  On DAG, it looks like it might be reading the entire 4.1 GB file EVERY TIME it calculates percentiles, which is weird.  I am using df2, which I persisted, as input.  Why does it have to go back to S3 every time?????
+
+BTW, exact answers for RC_2011-03:
+{u'politics': [-3.0, 17.0], u'pics': [-2.0, 28.0], u'leagueoflegends': [-1.0, 12.0], u'GirlGamers': [0.0, 14.019999999999982]}
+
+Approximate answers:
+{u'politics': [-3.782435410334347, 16.721300160513636], u'pics': [-2.5637618048268624, 27.650937042459688], u'leagueoflegends': [-1.9473308270676692, 11.290427350427347], u'GirlGamers': [-0.7766666666666667, 13.99666666666667]}
+
+Pretty big difference.  
+
+OK I restarted kernel and cleared memory and now EVERYTHING RUNS FAST.  percentile_approx is running in 2 sec and percentile is running in 1 sec.  WTF!!!???  I mean I'm happy but WHAT CHANGED?????  Before it was reading everything from S3 every time it calculated percentiles and now it's not.  Dunno, man.  
+
+So I've solved the slow percentile problem and I've solved the missing afinn problem. Now I'm back to getting 47% accuracy.  WHY?  It's not running some computations, they are being "skipped".  Here's something:
+
+http://mail-archives.us.apache.org/mod_mbox/spark-user/201501.mbox/%3CCAKx7Bf-U+Jc6Q_zM7gTsj1MiHAgd_4Up4QxPd9jFdjrFJaxinQ@mail.gmail.com%3E
+The computation of a stage is skipped if the
+results for that stage are still available from the evaluation of a prior
+job run:
+https://github.com/apache/spark/blob/master/core/src/main/scala/org/apache/spark/ui/jobs/JobProgressListener.scala#L163 
+
+Maybe it's using stale data somehow?  
+
+I restarted the kernel and ran from scratch.  I get 52% accuracy now.  
+
+It's taking a long time to to minTimeRDD and I don't think I need to do the reduceByKey().  What I need is .min()
+
+Increasing iterations in LR from 500 to 5000.  
+
+With 5000 iterations I get (weights, intercept):
+[369.87460981,13.6881283062,-2.53613973159,-0.0974746936539,7.100327285,2.63115002357] 10.6321692294
+
+and 52% accuracy.  Weird.  
+
+With 500 iterations I get
+[139.105918341,3.74795117483,120.985595236,-0.00558833628498,2.31164589822,0.93166900632] 4.23741570639
+
+AND EXACTLY THE SAME PERCENT RIGHT.  WHY???????
+
+I printed out take(1000) for my model predictions on OHETrainData and I'm getting all 1's, as before.  Here are the counts in df2:
+
+politics 316521
+GirlGamers 467
+leagueoflegends 30034
+pics 581447
+
+Before, I corrected this problem by reading in 10 GB of data.  I guess I was reading in 2009 data.  Maybe I should try the same thing again????
 
 
 
