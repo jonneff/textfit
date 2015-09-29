@@ -8,6 +8,7 @@ Need to install numpy, tdigest and afinn on ALL NODES as follows:
 sudo apt-get update
 sudo apt-get install python-pip
 sudo pip install cython
+sudo apt-get install python-dev
 sudo pip install tdigest
 sudo apt-get install git
 git config --global user.name "Your Name"
