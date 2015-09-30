@@ -901,6 +901,185 @@ pics 581447
 
 Before, I corrected this problem by reading in 10 GB of data.  I guess I was reading in 2009 data.  Maybe I should try the same thing again????
 
+I refactored finding min time comment from kludgey map-reduceByKey() to use SQL in Hive context.  This one change reduced time to find min time comment from 5 minutes to 0.5 seconds for a 4 GB input file.  (I am actually operating on the filtered dataframe down to subreddits of interest).  
+
+It seems like if you run logistic regression and have a problem, you almost have to start from scratch reading data.  Otherwise it caches the bad stuff and re-uses it the next time you try logistic regression.  At least that's what it looks like.  
+
+Running leftOuterJoin() on TimeSince looks like it is reading in entire dataset from S3 because input data = 10 GB.
+
+Ran on 10 GB of data.  Still getting ~ 50% accuracy BUT at least I'm not getting all 1's.  Increase from 50 to 100 iterations and...nothing changes.  
+
+NOTE:  my model predicts 1563 1's (up votes) while actual labels have 34966 up votes.  That's a big discrepancy.  Maybe it's the threshold???
+
+Austin thinks that I should not register df2 as a table (again) when I calculate timeSince (leftOuterJoin).  It may be messing up a pointer and causing Spark to go back and read data in and create df and df2 again.  
+
+Use .setName("name of rdd") before persisting then I can identify in DAG. 
+
+It looks like it is taking a long time to create rRDD and persist.  Same for rRDDExtreme.  It gets to 80% quickly and then seems to go slowly.  
+
+Even when I am reading 10 GB of input data, I am only submitting about 70,000 training data points to Spark.  Alyssa had 500,000 records.
+So I'm STILL light on data.  Maybe when I scale up I will get good results.  
+
+SLOW LEFT OUTER JOIN:  Austin suggests
+1.  Try plain join to see if it's faster, test to see if it gives same result.
+2.  Optimize by doing join in dataframe/SQL.  This is usually 2x as fast as RDD.  
+
+Plain join doesn't seem to make anything run faster.  Still looks like it is reading in the entire dataset all over again.  Nuts.  
+
+Tried to read and process entire dataset.  Failed on join.  Here is the error message on the failed stage:
+
+Stage Id  Description Submitted Duration  Tasks: Succeeded/Total  Input Output  Shuffle Read  Shuffle Write   Failure Reason
+9 
+join at <ipython-input-5-002ba1e00c40>:36
+  2015/09/30 08:52:41   3.2 h 
+6747/14768 (1097 failed)
+  444.1 GB      643.8 MB  Job aborted due to stage failure: Task 6721 in stage 9.0 failed 4 times, most recent failure: Lost task 6721.3 in stage 9.0 (TID 80179, 172.31.40.2): java.io.IOException: Failed to connect to /172.31.46.20:57921 +details
+
+Job aborted due to stage failure: Task 6721 in stage 9.0 failed 4 times, most recent failure: Lost task 6721.3 in stage 9.0 (TID 80179, 172.31.40.2): java.io.IOException: Failed to connect to /172.31.46.20:57921
+  at org.apache.spark.network.client.TransportClientFactory.createClient(TransportClientFactory.java:193)
+  at org.apache.spark.network.client.TransportClientFactory.createClient(TransportClientFactory.java:156)
+  at org.apache.spark.network.netty.NettyBlockTransferService$$anon$1.createAndStart(NettyBlockTransferService.scala:88)
+  at org.apache.spark.network.shuffle.RetryingBlockFetcher.fetchAllOutstanding(RetryingBlockFetcher.java:140)
+  at org.apache.spark.network.shuffle.RetryingBlockFetcher.access$200(RetryingBlockFetcher.java:43)
+  at org.apache.spark.network.shuffle.RetryingBlockFetcher$1.run(RetryingBlockFetcher.java:170)
+  at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471)
+  at java.util.concurrent.FutureTask.run(FutureTask.java:262)
+  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+  at java.lang.Thread.run(Thread.java:745)
+Caused by: java.net.ConnectException: Connection refused: /172.31.46.20:57921
+  at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+  at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:740)
+  at io.netty.channel.socket.nio.NioSocketChannel.doFinishConnect(NioSocketChannel.java:208)
+  at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:287)
+  at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:528)
+  at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:468)
+  at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:382)
+  at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:354)
+  at io.netty.util.concurrent.SingleThreadEventExecutor$2.run(SingleThreadEventExecutor.java:116)
+  ... 1 more
+
+Driver stacktrace:
+
+Detail on some of the failed tasks in stage 9:  ExecutorLostFailure.  On DataBricks forum:
+
+
+I&#39;m getting an &#34;ExecutorLostFailure&#34;. What&#39;s going on and how do I fix this?
+oom
+Question by vida · Apr 28 at 08:55 PM ·
+Like · 0 · · Add comment
+1 Reply · Add your reply
+
+    Sort: 
+
+Answer by vida · Apr 28 at 08:58 PM
+
+If you run a workload that causes a OOM error on your Spark workers, you'll see an ExecutorLostFailure if your notebook. If that's the case, you should trace down your job to the detailed task page on the Spark UI. Search for the notebook on "Debugging a Spark Job" to find out how to navigate the Spark UI pages. On the detailed task page, look to see if there are any OOM stack traces that may help you figure out what part of your code is causing the OOM problem.
+
+Detail page has a lot of "Resbumitted (resubmitted due to lost executor)".  The other common error message is 
+
+java.net.SocketTimeoutException: Read timed out
+  at java.net.SocketInputStream.socketRead0(Native Method)
+  at java.net.SocketInputStream.read(SocketInputStream.java:152)
+  at java.net.SocketInputStream.read(SocketInputStream.java:122)
+  at sun.security.ssl.InputRecord.readFully(InputRecord.java:442)
+  at sun.security.ssl.InputRecord.readV3Record(InputRecord.java:554)
+  at sun.security.ssl.InputRecord.read(InputRecord.java:509)
+  at sun.security.ssl.SSLSocketImpl.readRecord(SSLSocketImpl.java:946)
+  at sun.security.ssl.SSLSocketImpl.readDataRecord(SSLSocketImpl.java:903)
+  at sun.security.ssl.AppInputStream.read(AppInputStream.java:102)
+  at org.apache.http.impl.io.AbstractSessionInputBuffer.read(AbstractSessionInputBuffer.java:198)
+  at org.apache.http.impl.io.ContentLengthInputStream.read(ContentLengthInputStream.java:178)
+  at org.apache.http.impl.io.ContentLengthInputStream.read(ContentLengthInputStream.java:200)
+  at org.apache.http.impl.io.ContentLengthInputStream.close(ContentLengthInputStream.java:103)
+  at org.apache.http.conn.BasicManagedEntity.streamClosed(BasicManagedEntity.java:164)
+  at org.apache.http.conn.EofSensorInputStream.checkClose(EofSensorInputStream.java:227)
+  at org.apache.http.conn.EofSensorInputStream.close(EofSensorInputStream.java:174)
+  at org.apache.http.util.EntityUtils.consume(EntityUtils.java:88)
+  at org.jets3t.service.impl.rest.httpclient.HttpMethodReleaseInputStream.releaseConnection(HttpMethodReleaseInputStream.java:102)
+  at org.jets3t.service.impl.rest.httpclient.HttpMethodReleaseInputStream.close(HttpMethodReleaseInputStream.java:194)
+  at org.apache.hadoop.fs.s3native.NativeS3FileSystem$NativeS3FsInputStream.seek(NativeS3FileSystem.java:152)
+  at org.apache.hadoop.fs.BufferedFSInputStream.seek(BufferedFSInputStream.java:89)
+  at org.apache.hadoop.fs.FSDataInputStream.seek(FSDataInputStream.java:63)
+  at org.apache.hadoop.mapred.LineRecordReader.<init>(LineRecordReader.java:126)
+  at org.apache.hadoop.mapred.TextInputFormat.getRecordReader(TextInputFormat.java:67)
+  at org.apache.spark.rdd.HadoopRDD$$anon$1.<init>(HadoopRDD.scala:239)
+  at org.apache.spark.rdd.HadoopRDD.compute(HadoopRDD.scala:216)
+  at org.apache.spark.rdd.HadoopRDD.compute(HadoopRDD.scala:101)
+  at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:277)
+  at org.apache.spark.rdd.RDD.iterator(RDD.scala:244)
+  at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:35)
+  at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:277)
+  at org.apache.spark.rdd.RDD.iterator(RDD.scala:244)
+  at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:35)
+  at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:277)
+  at org.apache.spark.rdd.RDD.iterator(RDD.scala:244)
+  at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:35)
+  at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:277)
+  at org.apache.spark.rdd.RDD.iterator(RDD.scala:244)
+  at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:35)
+  at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:277)
+  at org.apache.spark.rdd.RDD.iterator(RDD.scala:244)
+  at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:35)
+  at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:277)
+  at org.apache.spark.rdd.RDD.iterator(RDD.scala:244)
+  at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:35)
+  at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:277)
+  at org.apache.spark.rdd.RDD.iterator(RDD.scala:244)
+  at org.apache.spark.api.python.PythonRDD$WriterThread$$anonfun$run$3.apply(PythonRDD.scala:248)
+  at org.apache.spark.util.Utils$.logUncaughtExceptions(Utils.scala:1772)
+  at org.apache.spark.api.python.PythonRDD$WriterThread.run(PythonRDD.scala:208)
+
+Before the lost executors on detail page, there is this:
+
+java.io.IOException: Failed to connect to /172.31.46.20:57921
+  at org.apache.spark.network.client.TransportClientFactory.createClient(TransportClientFactory.java:193)
+  at org.apache.spark.network.client.TransportClientFactory.createClient(TransportClientFactory.java:156)
+  at org.apache.spark.network.netty.NettyBlockTransferService$$anon$1.createAndStart(NettyBlockTransferService.scala:88)
+  at org.apache.spark.network.shuffle.RetryingBlockFetcher.fetchAllOutstanding(RetryingBlockFetcher.java:140)
+  at org.apache.spark.network.shuffle.RetryingBlockFetcher.access$200(RetryingBlockFetcher.java:43)
+  at org.apache.spark.network.shuffle.RetryingBlockFetcher$1.run(RetryingBlockFetcher.java:170)
+  at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471)
+  at java.util.concurrent.FutureTask.run(FutureTask.java:262)
+  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+  at java.lang.Thread.run(Thread.java:745)
+Caused by: java.net.ConnectException: Connection refused: /172.31.46.20:57921
+  at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+  at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:740)
+  at io.netty.channel.socket.nio.NioSocketChannel.doFinishConnect(NioSocketChannel.java:208)
+  at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:287)
+  at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:528)
+  at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:468)
+  at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:382)
+  at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:354)
+  at io.netty.util.concurrent.SingleThreadEventExecutor$2.run(SingleThreadEventExecutor.java:116)
+  ... 1 more
+
+Here is an interesting message in stderr on node 4:
+
+15/09/30 14:02:42 INFO MemoryStore: Block rdd_4_812 stored as bytes in memory (estimated size 2.3 MB, free 660.7 MB)
+15/09/30 14:02:42 INFO Executor: Finished task 812.0 in stage 11.0 (TID 92820). 37706 bytes result sent to driver
+15/09/30 14:02:42 INFO CoarseGrainedExecutorBackend: Got assigned task 92829
+15/09/30 14:02:42 INFO Executor: Running task 834.0 in stage 11.0 (TID 92829)
+15/09/30 14:02:42 INFO CacheManager: Partition rdd_4_834 not found, computing it
+15/09/30 14:02:42 INFO HadoopRDD: Input split: s3n://reddit-comments/2011/RC_2011-03:3087007744+67108864
+15/09/30 14:02:42 INFO NativeS3FileSystem: Opening 's3n://reddit-comments/2011/RC_2011-03' for reading
+15/09/30 14:02:42 INFO NativeS3FileSystem: Opening key '2011/RC_2011-03' for reading at position '3087007744'
+
+OPTIONS FOR FIXING JOIN PROBLEM:
+
+1.  Switch from join to broadcast variable.
+2.  Try to force previous RDDs to evaluate using count.
+3.  Do join on two dataframes.  
+  3.A.  Convert RDDExtreme into df.  Requires schema.  
+  3.B.  Create dfExtreme directly.  
+    3.B.1.  udf for srDigestR (Will this work in SQL query?)
+    3.B.2.  Split df2 into 4 parts, filter, then union.  
+4.  Improve scheduler, either configure Spark standalone or use YARN.
+5.  Examine failure logs, try to identify specific problem and fix.  
+
+Austin recommends DON'T DO JOIN, USE BROADCAST VARIABLE for minTime.  That way nodes can do the operation (subtraction) locally without having to pull data from everywhere across the cluster.  
 
 
 
