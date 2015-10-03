@@ -1081,11 +1081,126 @@ OPTIONS FOR FIXING JOIN PROBLEM:
 
 Austin recommends DON'T DO JOIN, USE BROADCAST VARIABLE for minTime.  That way nodes can do the operation (subtraction) locally without having to pull data from everywhere across the cluster.  
 
+Changing to broadcast variable means calculating time since post goes from 6 min to 12 seconds for a 30 GB input file. 
+
+Looking at Alyssa's input data.  She sent me an HTML that summarizes it.  I SHOULD have an input dataset for logistic regression that is same order of magnitude BEFORE filtering to top/bottom 3%.  Or maybe I compare my data to Alyssa's data AFTER she filters down.  Alyssa confirms that the csv input data I have is BEFORE filtering down to top/bottom 3%.  
+
+Alyssa brought up a point- outliers- comments with the F-word repeated 10,000 times would produce a truly horrible sentiment score and possibly throw off the algorithm.  
+
+So Alyssa's input data is 750 MB.  She only uses 6% of that, or 45 MB input data for April and May 2015.  So if I did May only, I would expect to get at least half that much or 22 MB.  I need to run on May 2015 only to see how big my training data set is.  
+
+Broadcast variable failed.  Will return after these messages.
+
+Getting webapp up.  
+
+Install mysql:  sudo apt-get install mysql-server
+
+Start mysql:  sudo service mysql start
+
+Alyssa missing dependencies need to install
+
+SQLAlchemy
+pandas
+
+Google slides publish to web:
+
+<iframe src="https://docs.google.com/presentation/d/1MZIzvM0SJR5MjyetVSC5hknWDs3E-rgO4s_lLNhs1ew/embed?start=false&loop=false&delayms=3000" frameborder="0" width="960" height="749" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
 
 
+Back to debugging out of memory error on broadcast variable.
 
+I tried this and it looked like it would take 4 - 14 hours and was generating task failures:
 
+postIDList = rRDDExtreme.map(lambda (k,v):  v[2]).distinct().collect()
 
+My idea was to filter down to just the link_id's (post IDs) that I needed to 
+
+NOTE:  I am doing a LARGE filter operation.  My df2 ends up with 14,000 partitions because that's what df had after reading in 1 TB JSON files.  Good practice it so coalesce() after doing a major filter to reduce number of partitions.  This will reduce the number of tasks.  
+
+So how many partitions should I have after filtering the dataset down to the 4 subreddits of interest?  
+
+Here is what I'm getting out of Spark UI:  
+
+13.9  GB
+14568 partitions
+0.000954146 GB per partition
+0.954146074 MB per partition
+
+Sure enough when I look at detail there is less than 1 MB per partition for most partitions with a few at ~2 MB.  This looks like an overhead problem for shuffles.  
+From Spark programming guide:  
+
+One important parameter for parallel collections is the number of partitions to cut the dataset into. Spark will run one task for each partition of the cluster. Typically you want 2-4 partitions for each CPU in your cluster. Normally, Spark tries to set the number of partitions automatically based on your cluster. 
+
+BUT ALSO...
+
+The textFile method also takes an optional second argument for controlling the number of partitions of the file. By default, Spark creates one partition for each block of the file (blocks being 64MB by default in HDFS), but you can also ask for a higher number of partitions by passing a larger value. Note that you cannot have fewer partitions than blocks.
+
+I tried avoiding the join by doing this and it didn't work:
+
+In [7]:
+
+rRDDExtremeLinks = rRDDExtreme.map(lambda (k,v): [v[2]])
+
+dfExtreme = sqlContext.createDataFrame(rRDDExtremeLinks,["link_id"])
+
+Extract link_id (post ID) from rRDDExtreme.
+In [8]:
+
+sqlContext.registerDataFrameAsTable(dfExtreme, "xcomments")
+
+SQL = "select distinct(link_id) from xcomments"
+
+link_idExtreme = sqlContext.sql(SQL).collect()
+
+link_idExtremeBR = sc.broadcast(link_idExtreme)
+
+len(link_idExtreme)
+
+Out[8]:
+
+6147
+
+Filter rRDD (comments in subreddits of interest) down to just posts referenced in top/bottom 3% of comments.
+In [11]:
+
+pRDD = (rRDD.filter(lambda (k,v):  v[2] in link_idExtremeBR.value)
+
+            .map(lambda (k,v):  (v[2], v[1]))
+
+        )
+
+dfp = sqlContext.createDataFrame(pRDD,["link_id","created_utc"])
+
+            
+
+sqlContext.registerDataFrameAsTable(dfp, "pcomments")
+
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+<ipython-input-11-242aaa2e9026> in <module>()
+      2             .map(lambda (k,v):  (v[2], v[1]))
+      3         )
+----> 4 dfp = sqlContext.createDataFrame(pRDD,["link_id","created_utc"])
+      5 
+      6 sqlContext.registerDataFrameAsTable(dfp, "pcomments")
+
+/usr/local/spark/python/pyspark/sql/context.pyc in createDataFrame(self, data, schema, samplingRatio)
+    336 
+    337         if isinstance(schema, (list, tuple)):
+--> 338             first = rdd.first()
+    339             if not isinstance(first, (list, tuple)):
+    340                 raise TypeError("each row in `rdd` should be list or tuple, "
+
+/usr/local/spark/python/pyspark/rdd.pyc in first(self)
+   1296         if rs:
+   1297             return rs[0]
+-> 1298         raise ValueError("RDD is empty")
+   1299 
+   1300     def isEmpty(self):
+
+ValueError: RDD is empty
+
+Also, the select distinct() took a LOOOOONG time.  I'm thinking now that I should just bite the bullet and do the join.  With smaller number of partitions and doing join with dataframes, I should be able to get it to work.  I think.  
 
 
 
