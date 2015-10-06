@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import cPickle
 from sqlalchemy import create_engine
+import math
 
 USERAGENT = '/u/insight_fu posts'
 r = praw.Reddit(USERAGENT)
@@ -93,41 +94,53 @@ def features(db, subreddit, post, comment, time):
     
     timeSince = round(commentTime - postTime)
 
-    dict = {'GirlGamers': [1, 0, 0, 0],
-           'leagueoflegends': [0, 1, 0, 0],
-           'pics': [0, 0, 1, 0],
-           'politics': [0, 0, 0, 1]}
+    dict = {'GirlGamers': [0, 0, 0],
+           'leagueoflegends': [1, 0, 0],
+           'pics': [0, 1, 0],
+           'politics': [0, 0, 1]}
            
     for key in dict.keys():
         if key == subreddit:
             subredditDC = dict[key]
 
-    features = np.append([subredditDC], [timeSince, commentLength, posNegDiff])
+    features = np.append([commentLength, posNegDiff, timeSince], [subredditDC])
 
     return features
 
+def sigmoid(x):
+  return 1 / (1 + math.exp(-x))
+
+def findProb(features):
+    f = open('app/weights.csv', 'r')
+    weights = np.genfromtxt('app/weights.csv',delimiter=',')
+    f.close()
+
+    z = weights.dot(features)
+    return sigmoid(z)
 
 def probability(features):
-    f = open('app/model', 'r')
-    model = cPickle.load(f)
-    f.close()
+    # f = open('app/model', 'r')
+    # model = cPickle.load(f)
+    # f.close()
 
-    probs = model.predict_proba(features)
+    # probs = model.predict_proba(features)
 
-    return "Your chance of being <font color= 'blue'><strong>upvoted: " + str(round(probs[0][1], 3)*100) + "%</font></strong>"
+    prob = findProb(features)
+
+    return "Your chance of being <font color= 'blue'><strong>upvoted: " + str(round(prob*100)) + "%</font></strong>"
 
 def probFeedback(features):
-    f = open('app/model', 'r')
-    model = cPickle.load(f)
-    f.close()
+    # f = open('app/model', 'r')
+    # model = cPickle.load(f)
+    # f.close()
+    # probs = model.predict_proba(features)
+    prob = findProb(features)
 
-    probs = model.predict_proba(features)
-
-    if probs[0][1] > .5:
-        return "This comment is <font color = 'blue'><strong>likely</font></strong> to be upvoted <font color = 'blue'><strong>(" + str(round(probs[0][1], 3)*100) + "%)</font></strong>"
-    elif probs[0][1] < .5:
-        return "This comment is <font color = 'red'><strong>unlikely</font></strong> to be upvoted <font color = 'red'><strong>(" + str(round(probs[0][1], 3)*100) + "%)</font></strong>" 
-    elif probs[0][1] == .5:
+    if prob > .5:
+        return "This comment is <font color = 'blue'><strong>likely</font></strong> to be upvoted <font color = 'blue'><strong>(" + str(round(prob)*100) + "%)</font></strong>"
+    elif prob < .5:
+        return "This comment is <font color = 'red'><strong>unlikely</font></strong> to be upvoted <font color = 'red'><strong>(" + str(round(prob)*100) + "%)</font></strong>" 
+    elif prob == .5:
         return "Whoa. It's a toss-up whether this comment will be upvoted or not"
     
 def timePresent(timeSec):
