@@ -23,7 +23,7 @@ textfitXL is implemented in Apache Spark using the Python API and a Jupyter (Ipy
 
 The figure below shows the basic approach used in textfitXL.  
 
-![alt text](img/algo.png "Algorithm, Features and Scaling")
+![alt text](img/algo.jpeg "Algorithm, Features and Scaling")
 
 Regularized logistic regression is used to classify comments as either upvoted (1) or downvoted (0).  As in Alyssa's project, four features were used:  time since post, comment length, sentiment, and subreddit.  Subreddit is a categorical variable with four categories:  GirlGamers, leagueoflegends, pics, and politics.  (While Reddit has many thousands of subreddits, Alyssa chose four for her model.)  Sentiment analysis is done using the [AFINN](https://github.com/fnielsen/afinn) model, which is essentially a table lookup based on movie reviews.  Per the request of the author, listed below is the reference for the paper describing AFINN:
 
@@ -33,26 +33,26 @@ Scalability is achieved by using Spark for parallel processing.  The features ar
 
 The initial 908 GB dataset is filtered down to less than 55 MB by choosing only comments that are in the top or bottom 3% of votes.  Logistic regression models have difficulty learning from data points that are not "extreme" values.  
 
-![alt text](img/filter.png "Filter to Top/Bottom 3%")
+![alt text](img/filter.jpg "Filter to Top/Bottom 3%")
 
 
 ## 3. Data and Pipeline
 
-![alt text](img/pipeline.png "Data and Pipeline")
+![alt text](img/pipeline.jpg "Data and Pipeline")
 
 ## 4. Cluster and Cost
 
-![alt text](img/cost.png "Cluster and Cost")
+![alt text](img/cost.jpg "Cluster and Cost")
 
 ## 5. Accuracy and Runtime
 
 ## 6.  Engineering Challenges
 
-![alt text](img/mixed.png "Mixed Numerical and Categorical Variables")
+![alt text](img/mixed.jpg "Mixed Numerical and Categorical Variables")
 
-![alt text](img/shuffle.png "Join is Long and Brittle Due to Shuffling")
+![alt text](img/shuffle.jpg "Join is Long and Brittle Due to Shuffling")
 
-![alt text](img/repartition.png "Repartitioning Improves Performance")
+![alt text](img/repartition.jpg "Repartitioning Improves Performance")
 
 ## 7.  Installation Instructions
 
