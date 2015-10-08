@@ -23,7 +23,7 @@ textfitXL is implemented in Apache Spark using the Python API and a Jupyter (Ipy
 
 The figure below shows the basic approach used in textfitXL.  
 
-![alt text](img/algo.jpeg "Algorithm, Features and Scaling")
+![alt text](img/algo.jpg "Algorithm, Features and Scaling")
 
 Regularized logistic regression is used to classify comments as either upvoted (1) or downvoted (0).  As in Alyssa's project, four features were used:  time since post, comment length, sentiment, and subreddit.  Subreddit is a categorical variable with four categories:  GirlGamers, leagueoflegends, pics, and politics.  (While Reddit has many thousands of subreddits, Alyssa chose four for her model.)  Sentiment analysis is done using the [AFINN](https://github.com/fnielsen/afinn) model, which is essentially a table lookup based on movie reviews.  Per the request of the author, listed below is the reference for the paper describing AFINN:
 
