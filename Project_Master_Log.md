@@ -563,7 +563,13 @@ tmux a -t <target session>
 
 Starting IPython notebook with Spark to use workers by default:
 
-IPYTHON_OPTS="notebook" pyspark --master spark://ip-172-31-47-195:7077 --executor-memory 6400M --driver-memory 6400M
+[NOTE:  IP BELOW IS PRIVATE DNS]
+
+m4.large has 8 GB memory, so...
+IPYTHON_OPTS="notebook" pyspark --master spark://<private ip>:7077 --executor-memory 6400M --driver-memory 6400M
+
+m4.xlrge has 16 GB memory:
+IPYTHON_OPTS="notebook" pyspark --master spark://ip-172-31-33-121:7077 --executor-memory 12000M --driver-memory 12000M
 
 Patrick Zheng discovered that IPython-Spark uses just the master node to execute workbook by default.  Adding these parameters enables you to execute IPython notebook with workers.  
 
@@ -1201,6 +1207,192 @@ ValueError                                Traceback (most recent call last)
 ValueError: RDD is empty
 
 Also, the select distinct() took a LOOOOONG time.  I'm thinking now that I should just bite the bullet and do the join.  With smaller number of partitions and doing join with dataframes, I should be able to get it to work.  I think.  
+
+2015.10.03
+
+I may have just been saved by the kindness of strangers.  It turns out Jason Baumgartner made ALL REDDIT SUBMISSIONS available 7 days ago.  Felipe Hoffa put it in Google BigQuery.  Hallelujah!  I am saved!  Submission corpus contains publicly available Reddit submissions from January 2006 - August 31, 2015.  So this includes the dates for comments data.  
+
+http://minimaxir.com/2015/10/reddit-bigquery/
+https://www.reddit.com/r/datasets/comments/3mg812/full_reddit_submission_corpus_now_available_2006/
+
+Schema for table:
+
+Table Details: full_corpus_201509
+Schema Details Query Table
+Schema
+
+domain  STRING  NULLABLE  
+subreddit STRING  NULLABLE  
+selftext  STRING  NULLABLE  
+saved BOOLEAN NULLABLE  
+id  STRING  NULLABLE  
+from_kind STRING  NULLABLE  
+gilded  INTEGER NULLABLE  
+from  STRING  NULLABLE  
+stickied  BOOLEAN NULLABLE  
+title STRING  NULLABLE  
+num_comments  INTEGER NULLABLE  
+score INTEGER NULLABLE  
+retrieved_on  INTEGER NULLABLE  
+over_18 BOOLEAN NULLABLE  
+thumbnail STRING  NULLABLE  
+subreddit_id  STRING  NULLABLE  
+hide_score  BOOLEAN NULLABLE  
+link_flair_css_class  STRING  NULLABLE  
+author_flair_css_class  STRING  NULLABLE  
+downs INTEGER NULLABLE  
+archived  BOOLEAN NULLABLE  
+is_self BOOLEAN NULLABLE  
+from_id STRING  NULLABLE  
+permalink STRING  NULLABLE  
+name  STRING  NULLABLE  
+created INTEGER NULLABLE  
+url STRING  NULLABLE  
+author_flair_text STRING  NULLABLE  
+quarantine  BOOLEAN NULLABLE  
+author  STRING  NULLABLE  
+created_utc STRING  NULLABLE  
+link_flair_text STRING  NULLABLE  
+ups INTEGER NULLABLE  
+distinguished STRING  NULLABLE  
+
+I selected id, created_utc from this dataset and saved it in my own dataset/table:  [phonic-bivouac-108719:reddit.reddit_posts].
+
+Querying this table to select created_utc for one id took 3.8 seconds.  Note this doesn't include Amazon or Google network latency.  Not feasible for my app.
+
+I created a bucket in Google Storage called neff_reddit.  I will move my table contents over there.  Did that.  Now I'm downloading the .csv files to master.  Very soon I will be able to read in all created_utc for all subreddit link_id's from local filesystem.  Yay!  
+
+In [29]:
+
+rRDDExtremeLinks = rRDDExtreme.map(lambda (k,v): [v[2]])
+
+dfExtreme = sqlContext.createDataFrame(rRDDExtremeLinks,["link_id"]).distinct().cache()
+
+​
+
+# sqlContext.registerDataFrameAsTable(dfExtreme, "xtable")
+
+The history saving thread hit an unexpected error (OperationalError('database or disk is full',)).History will not be written to the database.
+
+Find min time comments for 100% of subreddits of interest using HiveQL.
+
+<b>
+
+In [30]:
+
+# Find minimum time comments for each post and register as table
+
+​
+
+minTimeDF = (hiveContext.sql("select link_id, min(cast (created_utc as int)) as min_utc from rcomments group by link_id")
+
+                        .cache()
+
+            )
+
+             # sqlContext.registerDataFrameAsTable(minTimeDF, "mintable")
+
+Create new dataframe with min time utc for ONLY link_id's referenced in top/bottom 3%.
+
+SUBQUERY ISN'T WORKING, TRY JOIN.
+In [ ]:
+
+minTimeDFX = dfExtreme.join(minTimeDF, dfExtreme.link_id == minTimeDF.link_id, 'inner')
+
+# minTimeBR = sc.broadcast(minTimeDict)
+
+# len(minTimeDict)              
+
+Contents of my reddit_posts directory on /mnt/my-data is as follows:
+
+id,created_utc
+391q6q,1433782034
+391q8h,1433782056
+391q9e,1433782065
+...
+
+These are CSV files with headers on the first row.  Need to see how Spark handles that.  
+
+New charts to include in website:
+
+<iframe src="https://docs.google.com/presentation/d/1exq6sFKxjzEQbcDZqF4NgUbLAL_SX9673UA9QKo-Kq0/embed?start=false&loop=false&delayms=3000" frameborder="0" width="960" height="749" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
+
+Results from running LR on April 2015 data (30 GB):
+
+[38.3465796714,1.33473699175,67.1857538958,0.632363006388,0.467447062237,0.159628651162] 2.26398369771
+45650
+89472
+Accuracy on training set:
+0.510215486409
+
+with these:
+
+# fixed hyperparameters
+numIters = 50
+stepSize = 1.
+regParam = 1e-6
+regType = 'l2'
+includeIntercept = True
+validateData = False
+
+Tried to run read and create srDigest just now.  Failed on read.  Apparently when you try to coalesce too soon it just creates 400 partitions to start with and that's not enough.  You have to wait until read is finished and then coalesce.
+
+For reading all 2012 data (140 GB) I have this:
+
+In [5]:
+
+len(minTimeDict)
+
+Out[5]:
+
+80367
+
+OK I solved the read problem and join problem with careful use of coalesce() and count() to force read using a large number of partitions and join with a smaller number of partitions.  This works at 140 GB input.  So far so good.  Only problem is that now logistic regression is failing.
+
+------------
+Detour to web app.  I need to replace Alyssa's model with mine.  This means I will also need to change her code that extracts features from comment inputs into the format that I use.  
+
+Here is one record from OHETrainData:
+
+[LabeledPoint(0.0, (6,[0,1,2,4],[1.0,0.0,0.0,1.0]))]
+
+Notice anything strange?  Feature is a SparseVector with 6 items in indexes 0, 1, 2, and 4.  The values are 1, 0, 0, and 1.  That does NOT look right.
+
+Here are some more points:
+
+[LabeledPoint(0.0, (6,[0,1,2,4],[1.0,0.0,0.0,1.0])),
+ LabeledPoint(0.0, (6,[0,1,2,5],[13.0,0.0,0.0,1.0])),
+ LabeledPoint(0.0, (6,[0,1,2,5],[113.0,0.0,8.0,1.0])),
+ LabeledPoint(1.0, (6,[0,1,2,4],[14.0,2.0,44.0,1.0])),
+ LabeledPoint(1.0, (6,[0,1,2,3],[19.0,0.0,0.0,1.0])),
+ LabeledPoint(1.0, (6,[0,1,2,4],[9.0,0.0,109.0,1.0])),
+ LabeledPoint(1.0, (6,[0,1,2,5],[90.0,-7.0,158.0,1.0])),
+ LabeledPoint(0.0, (6,[0,1,2,4],[7.0,-1.0,161.0,1.0])),
+ LabeledPoint(0.0, (6,[0,1,2,5],[17.0,0.0,90.0,1.0])),
+ LabeledPoint(1.0, (6,[0,1,2,4],[6.0,-2.0,355.0,1.0]))]
+
+ So in order to actually USE (score) my model outside of Spark I need to export it to PMML and then have a consumer that will read in PMML and execute the model.  Spark 1.4.1 supports this but I am not sure if it is only in Scala or it is in Python also.  It supports exporting binary logistic regression models.   See https://spark.apache.org/docs/1.4.1/mllib-pmml-model-export.html
+
+ I am not sure if 1) it works in Spark API and 2) if Augustus can read and execute the model so exported.  This looks like a couple of days of development.  There is also Py2PMML, but it's a commercial tool with no price listed or easy download.  
+
+ What I have is a SIMPLE model.  I should be able to just export the weights as a text file, read them in, and compute the probability.  
+
+Screencast of demo is available at 
+
+https://youtu.be/YnUe7ERiGGY
+
+NOTES ON JOIN FAILS, LR FAILS, etc.:
+
+Spark is aware of CPU and memory.  It is not aware of networking capacity.  So when I try to scale up, it does lazy evaluation and tries to optimize by running everything in parallel before running LR.  The problem is that part of that processing involves joining large datasets, which results in a lot of shuffling which puts a load on networking.  Then when it's doing lots of shuffling in parallel it starts to get network timeouts, tasks fail, and it aborts the stage.  
+
+I moved to m4.xlarges, which have better network cards.  This should help a lot.  HOLY SMOKES! They read 140 GB in 14 minutes.  WOW!  
+
+Unfortunately Spark froze when I tried to execute distinct, min (time), join, collect; create dict & broadcast.  
+
+Actually, this is not Spark freezing, it's just the Ipython notebook. If you close that tab and re-open, everything works fine.  
+
+Got it to run with 908 GB.  :)  Now if I could just improve accuracy.  
+
 
 
 
