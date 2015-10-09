@@ -13,11 +13,13 @@ Table of Contents:
 
 ## 1. Introduction
 
-In July 2015, Dr. Alyssa Fu, an Insight Data Science Fellow at the time, trained a logistic regression model in R to predict whether a comment would be voted up or down on Reddit.  Her training data was extracted from about 500,000 comments she downloaded through the Reddit API for April and May 2015.  The name of her project was [textfit.](https://github.com/alyssafu/Insight-Project).  
+In July 2015, Dr. Alyssa Fu, an Insight Data Science Fellow at the time, trained a logistic regression model in R to predict whether a comment would be voted up or down on Reddit.  Her training data was extracted from about 500,000 comments she downloaded through the Reddit API for April and May 2015.  The name of her project was [textfit](https://github.com/alyssafu/Insight-Project).  
 
 The goal of textfitXL is to scale up Dr. Fu's project to handle 1.6 billion comments (908 GB) comprising eight years of Reddit data from 2007 to 2015.  Note that no attempt was made to alter or improve her original approach.  The source data was obtained by Jason Baumgartner.  Insight program directors obtained the data from [here](https://archive.org/details/2015_reddit_comments_corpus) and placed the data in 92 files in an Amazon S3 bucket.  
 
 textfitXL is implemented in Apache Spark using the Python API and a Jupyter (Ipython) notebook running on an AWS cluster.  The repository also includes a [simple web app](http://www.textfitxl.com/) that allows a user to select a Reddit post, type in a sample comment, and get a prediction of whether the comment will be voted up or down.  The web app re-uses much of Dr. Fu's code, with her permission.  
+
+The results of processing 908 GB of data are shown in the static file logistic_regression.html.  
 
 ## 2. Algorithm, Features, Scaling and Filtering
 
@@ -31,7 +33,7 @@ Finn Årup Nielsen, "A new ANEW: evaluation of a word list for sentiment analysi
 
 Scalability is achieved by using Spark for parallel processing.  The features are placed in a SparseVector format, which reduces memory and processing time during execution.  Finally, stochastic gradient descent is used to reduce time to calculate gradients, which can be a compute-intensive process.  
 
-The initial 908 GB dataset is filtered down to less than 55 MB by choosing only comments that are in the top or bottom 3% of votes.  Dr. Fu's experience was that logistic regression models have difficulty training on data points that are not "extreme" values in terms of up and down votes.  
+The initial 908 GB dataset is filtered down to less than 55 GB by choosing only comments that are in the top or bottom 3% of votes.  Dr. Fu's experience was that logistic regression models have difficulty training on data points that are not "extreme" values in terms of up and down votes.  
 
 ![alt text](img/filter.jpg "Filter to Top/Bottom 3%")
 
