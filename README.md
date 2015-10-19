@@ -56,11 +56,11 @@ The figure below shows the cluster configuration and cost.
 
 ## 5. Accuracy and Runtime
 
-Accuracy was calculated as the percentage of labels correctly predicted on the training set.  Current results show 52% accuracy with a runtime of 7.2 hours for reading and processing the entire 908 GB dataset.  Dr. Fu previously obtained accuracy of 65% using a much smaller dataset. 
+Accuracy was calculated as the percentage of labels correctly predicted on the training set.  textfitXL had accuracy of close to 60% for small subsets of the Reddit comment dataset.  Current results show 52% accuracy for the entire 908 GB dataset with a runtime of 7.2 hours for reading, processing and training the model.  Dr. Fu previously obtained accuracy of 65% using a much smaller dataset. 
 
 One possible explanation for the reduced accuracy is that textfitXL does not exclude outliers and deeply nested comments as Dr. Fu did with her smaller dataset.  (This is the only algorithmic difference between the original textfit and textfitXL.)  In her two month dataset, Dr. Fu observed several anomalies including comments that consisted of nothing but thousands of expletives and repeated negative words.   Comments like this would result in extreme sentiment scores which would be difficult to fit.  It may be possible to improve the accuracy of textfitXL by carefully analyzing the entire corpus and programmatically excluding certain outliers.  
 
-This pipeline makes it possible to do further work to improve accuracy, such as exploring and cleaning the data and trying out different classifiers and hyperparameter settings.  
+The textfitXL pipeline makes it possible to do further work to improve accuracy, such as exploring and cleaning the data and trying out different classifiers and hyperparameter settings.  
 
 During the course of this project, Jason Baumgartner published an additional corpus containing Reddit post (submission) data over roughly the same time period as the comment data.  Both data sets were loaded into Google BigQuery.  An intriguing possibility for improving runtime performance would be to push most of the preprocessing, filtering and joining into BigQuery and ingesting only the subset of data used for feature extraction. 
 
