@@ -21,6 +21,8 @@ textfitXL is implemented in Apache Spark using the Python API and a Jupyter (Ipy
 
 The results of processing 908 GB of data are shown in the static file logistic_regression.html.  
 
+logistic_regression.py contains just the Python source code for this project. 
+
 ## 2. Algorithm, Features, Scaling and Filtering
 
 The figure below shows the basic approach used in textfitXL.  
