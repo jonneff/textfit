@@ -1,6 +1,7 @@
 
 # coding: utf-8
 
+
 # # 0.0 Import packages and set up Spark context, SQL context and Hive context.
 
 
@@ -46,8 +47,9 @@ from operator import add
 
 
 # # 1.0 Read data
-# Define json schema to speed up reading json files on S3 (about 2x improvement)
 
+
+# Define json schema to speed up reading json files on S3 (about 2x improvement)
 
 fields = [StructField("archived", BooleanType(), True),
         StructField("author", StringType(), True),
@@ -119,6 +121,8 @@ rRDDExtreme.count() # force evaluation of this RDD to reduce partitions (coalesc
 
 
 # # 3.0 Find minimum comment timestamp for each post using HiveQL percentile UDF.  
+
+
 # This is a proxy for the post timestamp, which was unavailable at the time this project was done.
 
 rRDDExtremeLinks = rRDDExtreme.map(lambda (k,v): [v[2]])
