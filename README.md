@@ -17,11 +17,11 @@ In July 2015, Dr. Alyssa Fu, an Insight Data Science Fellow at the time, trained
 
 The goal of textfitXL is to scale up Dr. Fu's project to handle 1.6 billion comments (908 GB) comprising eight years of Reddit data from 2007 to 2015.  Note that no attempt was made to alter or improve her original approach.  The source data was obtained by Jason Baumgartner.  Insight program directors obtained the data from [here](https://archive.org/details/2015_reddit_comments_corpus) and placed the data in 92 files in an Amazon S3 bucket.  
 
-textfitXL is implemented in Apache Spark using the Python API and a Jupyter (Ipython) notebook running on an AWS cluster.  The repository also includes a [simple web app](http://www.textfitxl.com/) that allows a user to select a Reddit post, type in a sample comment, and get a prediction of whether the comment will be voted up or down.  The web app re-uses much of Dr. Fu's code, with her permission.  
+textfitXL is implemented on an AWS cluster using the Apache Spark Python API.  The repository also includes a [simple web app](http://www.textfitxl.com/) that allows a user to select a Reddit post, type in a sample comment, and get a prediction of whether the comment will be voted up or down.  The web app re-uses much of Dr. Fu's code, with her permission.  
 
-The results of processing 908 GB of data are shown in the static file logistic_regression.html.  
+The results of processing 908 GB of data are shown in the static file /notebook/logistic_regression.html.  
 
-logistic_regression.py contains just the Python source code for this project. 
+The folder /app contains the Python source code for this project while /data contains a subset of the input data.
 
 ## 2. Algorithm, Features, Scaling and Filtering
 
