@@ -33,7 +33,7 @@ isInData = {key: True for key in subreddits}
 
 # # 2.0 Filter to include only extreme up and down votes (top/bottom 3% of subreddit)
 # Reduces dataset for all subsequent processing.
-subredditDigest = createsrDict(df2, subreddits, isInData) 
+subredditDigest = createsrDict(df2, subreddits, isInData, hiveContext) 
 srDigestR = {key : (round(subredditDigest[key][0]), round(subredditDigest[key][1]) ) for key in subredditDigest.keys()}  
 
 # Put Dataframe into vanilla RDD
