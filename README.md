@@ -1,7 +1,5 @@
 # UPDATE
-I am currently refactoring textfitXL to improve performance and accuracy.  See [WordUp](https://github.com/jonneff/WordUp) for the "new textfit."  
-
-Since I started this project, Reddit comments have been loaded into Google Bigquery.  I am shifting the compute-intensive statistical and filtering operations into Bigquery, which will dramatically reduce the time to read and process the data for training the model.  I am also replacing the existing features with a feature vector based on the words in the comment body, which I expect will reduce training and test error.  Stay tuned.  
+I revisited this problem after five years and got MUCH better accuracy in a tiny fraction of the time.  See [WordUp](https://github.com/jonneff/GirlGamers) for the "new textfit."    
 
 # Introduction to textfitXL
 ============
