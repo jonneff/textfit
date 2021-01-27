@@ -1,5 +1,5 @@
 # UPDATE
-I revisited this problem after five years and got MUCH better accuracy in a tiny fraction of the time.  See [WordUp](https://github.com/jonneff/GirlGamers) for the "new textfit."    
+I revisited this problem after five years and got MUCH better accuracy in a tiny fraction of the time.  See [GirlGamers](https://github.com/jonneff/GirlGamers) for the "new textfit."    
 
 # Introduction to textfitXL
 ============
